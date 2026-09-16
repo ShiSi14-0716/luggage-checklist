@@ -1,0 +1,226 @@
+{
+  "updatedAt": "2026-09-17T00:00:00.000Z",
+  "items": [
+    {
+      "id": "d1",
+      "type": "toggle",
+      "text": "⁉️出发当日拿（提前备好）",
+      "color": "red",
+      "expanded": true,
+      "children": [
+        { "id": "d2", "type": "check", "text": "出发衣物（含袜子）", "checked": false, "children": [] },
+        { "id": "d3", "type": "check", "text": "牙刷（满电）", "checked": false, "children": [] },
+        { "id": "d4", "type": "check", "text": "手机充电线（塞背包-电子包）", "checked": false, "children": [] },
+        { "id": "d5", "type": "check", "text": "平板充电线（塞背包-电子包）", "checked": false, "children": [] },
+        { "id": "d6", "type": "check", "text": "扔垃圾", "checked": false, "children": [] },
+        { "id": "d7", "type": "check", "text": "快坏的水果", "checked": false, "children": [] }
+      ]
+    },
+    {
+      "id": "d8",
+      "type": "toggle",
+      "text": "🧳行李箱（路上不拿出来）",
+      "color": "purple",
+      "expanded": true,
+      "children": [
+        {
+          "id": "d9",
+          "type": "toggle",
+          "text": "衣物包",
+          "color": "pink",
+          "expanded": true,
+          "children": [
+            {
+              "id": "d10",
+              "type": "toggle",
+              "text": "贴身衣物",
+              "color": "gray",
+              "expanded": true,
+              "children": [
+                { "id": "d11", "type": "check", "text": "内衣", "checked": false, "children": [] },
+                { "id": "d12", "type": "check", "text": "内裤", "checked": false, "children": [] },
+                { "id": "d13", "type": "check", "text": "袜子", "checked": false, "children": [] },
+                { "id": "d14", "type": "check", "text": "帽巾", "checked": false, "children": [] },
+                { "id": "d15", "type": "check", "text": "浴巾", "checked": false, "children": [] }
+              ]
+            },
+            { "id": "d16", "type": "check", "text": "外穿衣物", "checked": false, "children": [] },
+            { "id": "d17", "type": "check", "text": "睡衣", "checked": false, "children": [] },
+            { "id": "d18", "type": "check", "text": "夏·防晒衣/冬·秋衣", "checked": false, "children": [] },
+            { "id": "d19", "type": "check", "text": "背包", "checked": false, "children": [] },
+            { "id": "d20", "type": "check", "text": "拖鞋", "checked": false, "children": [] }
+          ]
+        },
+        {
+          "id": "d21",
+          "type": "toggle",
+          "text": "洗漱包",
+          "color": "blue",
+          "expanded": true,
+          "children": [
+            { "id": "d22", "type": "check", "text": "牙刷", "checked": false, "children": [] },
+            { "id": "d23", "type": "check", "text": "卸妆膏", "checked": false, "children": [] },
+            { "id": "d24", "type": "check", "text": "洗面奶", "checked": false, "children": [] },
+            { "id": "d25", "type": "check", "text": "擦脸巾", "checked": false, "children": [] },
+            { "id": "d26", "type": "check", "text": "夏·保湿/冬·面霜", "checked": false, "children": [] },
+            { "id": "d27", "type": "check", "text": "凡士林", "checked": false, "children": [] },
+            { "id": "d28", "type": "check", "text": "梳子", "checked": false, "children": [] },
+            { "id": "d29", "type": "check", "text": "洗发水", "checked": false, "children": [] },
+            { "id": "d30", "type": "check", "text": "护发素", "checked": false, "children": [] },
+            { "id": "d31", "type": "check", "text": "护发精油", "checked": false, "children": [] },
+            { "id": "d32", "type": "check", "text": "卷发筒", "checked": false, "children": [] },
+            { "id": "d33", "type": "check", "text": "卷发袜", "checked": false, "children": [] },
+            { "id": "d34", "type": "check", "text": "沐浴露", "checked": false, "children": [] }
+          ]
+        },
+        {
+          "id": "d35",
+          "type": "toggle",
+          "text": "化妆包",
+          "color": "pink",
+          "expanded": true,
+          "children": [
+            { "id": "d36", "type": "check", "text": "美瞳", "checked": false, "children": [] },
+            { "id": "d37", "type": "check", "text": "防晒", "checked": false, "children": [] },
+            { "id": "d38", "type": "check", "text": "遮瑕(固&液)", "checked": false, "children": [] },
+            { "id": "d39", "type": "check", "text": "气垫", "checked": false, "children": [] },
+            { "id": "d40", "type": "check", "text": "双眼皮贴", "checked": false, "children": [] },
+            { "id": "d41", "type": "check", "text": "修容", "checked": false, "children": [] },
+            { "id": "d42", "type": "check", "text": "腮红", "checked": false, "children": [] },
+            { "id": "d43", "type": "check", "text": "口红", "checked": false, "children": [] },
+            { "id": "d44", "type": "check", "text": "眼影", "checked": false, "children": [] },
+            { "id": "d45", "type": "check", "text": "化妆刷", "checked": false, "children": [] },
+            { "id": "d46", "type": "check", "text": "小镜子", "checked": false, "children": [] }
+          ]
+        },
+        {
+          "id": "d47",
+          "type": "toggle",
+          "text": "电脑包",
+          "color": "blue",
+          "expanded": true,
+          "children": [
+            { "id": "d48", "type": "check", "text": "电脑", "checked": false, "children": [] },
+            { "id": "d49", "type": "check", "text": "充电线", "checked": false, "children": [] },
+            { "id": "d50", "type": "check", "text": "鼠标", "checked": false, "children": [] },
+            { "id": "d51", "type": "check", "text": "鼠标垫", "checked": false, "children": [] },
+            { "id": "d52", "type": "check", "text": "电脑支架", "checked": false, "children": [] }
+          ]
+        },
+        {
+          "id": "d53",
+          "type": "toggle",
+          "text": "电子包",
+          "color": "green",
+          "expanded": true,
+          "children": [
+            { "id": "d54", "type": "check", "text": "有线耳机", "checked": false, "children": [] },
+            { "id": "d55", "type": "check", "text": "手机充电线", "checked": false, "children": [] },
+            { "id": "d56", "type": "check", "text": "平板充电头", "checked": false, "children": [
+              { "id": "d57", "type": "check", "text": "平板充电线", "checked": false, "children": [] }
+            ] },
+            { "id": "d58", "type": "check", "text": "usb充电头", "checked": false, "children": [
+              { "id": "d59", "type": "check", "text": "手表充电线", "checked": false, "children": [] },
+              { "id": "d60", "type": "check", "text": "typeC充电线", "checked": false, "children": [] }
+            ] }
+          ]
+        },
+        {
+          "id": "d61",
+          "type": "toggle",
+          "text": "药包（很少变动）",
+          "color": "orange",
+          "expanded": true,
+          "children": [
+            { "id": "d62", "type": "check", "text": "偏头痛", "checked": false, "children": [] },
+            { "id": "d63", "type": "check", "text": "碘伏棉签", "checked": false, "children": [] },
+            { "id": "d64", "type": "check", "text": "创口贴", "checked": false, "children": [] },
+            { "id": "d65", "type": "check", "text": "布洛芬", "checked": false, "children": [] },
+            { "id": "d66", "type": "check", "text": "石脱蒙散", "checked": false, "children": [] }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "d67",
+      "type": "toggle",
+      "text": "🎒背包（路上会用到）",
+      "color": "yellow",
+      "expanded": true,
+      "children": [
+        {
+          "id": "d68",
+          "type": "toggle",
+          "text": "护理包",
+          "color": "orange",
+          "expanded": true,
+          "children": [
+            { "id": "d69", "type": "check", "text": "口罩", "checked": false, "children": [] },
+            { "id": "d70", "type": "check", "text": "卫生巾", "checked": false, "children": [] },
+            { "id": "d71", "type": "check", "text": "酒精棉片", "checked": false, "children": [] },
+            { "id": "d72", "type": "check", "text": "发绳", "checked": false, "children": [] },
+            { "id": "d73", "type": "check", "text": "润唇膏", "checked": false, "children": [] },
+            { "id": "d74", "type": "check", "text": "夏·驱蚊液/冬·护手霜", "checked": false, "children": [] },
+            { "id": "d75", "type": "check", "text": "口喷", "checked": false, "children": [] },
+            { "id": "d76", "type": "check", "text": "风油精", "checked": false, "children": [] },
+            { "id": "d77", "type": "check", "text": "指甲剪", "checked": false, "children": [] },
+            { "id": "d78", "type": "check", "text": "眼镜盒", "checked": false, "children": [] },
+            { "id": "d79", "type": "check", "text": "衣物免洗剂", "checked": false, "children": [] },
+            { "id": "d80", "type": "check", "text": "偏头痛（小颗）", "checked": false, "children": [] },
+            { "id": "d81", "type": "check", "text": "布洛芬（小颗）", "checked": false, "children": [] }
+          ]
+        },
+        {
+          "id": "d82",
+          "type": "toggle",
+          "text": "杂物",
+          "color": "green",
+          "expanded": true,
+          "children": [
+            { "id": "d83", "type": "check", "text": "纸巾", "checked": false, "children": [] },
+            { "id": "d84", "type": "check", "text": "湿厕纸", "checked": false, "children": [] },
+            { "id": "d85", "type": "check", "text": "充电宝", "checked": false, "children": [] },
+            { "id": "d86", "type": "check", "text": "蓝牙耳机", "checked": false, "children": [] },
+            { "id": "d87", "type": "check", "text": "风扇", "checked": false, "children": [] }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "d88",
+      "type": "toggle",
+      "text": "🫴🏻外部",
+      "color": "blue",
+      "expanded": true,
+      "children": [
+        { "id": "d89", "type": "check", "text": "钥匙", "checked": false, "children": [] },
+        { "id": "d90", "type": "check", "text": "外套", "checked": false, "children": [] },
+        { "id": "d91", "type": "check", "text": "手机（身份证）", "checked": false, "children": [] },
+        {
+          "id": "d92",
+          "type": "toggle",
+          "text": "飞机安检版",
+          "color": "gray",
+          "expanded": true,
+          "children": [
+            {
+              "id": "d93",
+              "type": "toggle",
+              "text": "电脑包（选）",
+              "color": "blue",
+              "expanded": true,
+              "children": [
+                { "id": "d94", "type": "check", "text": "电脑", "checked": false, "children": [] },
+                { "id": "d95", "type": "check", "text": "充电线", "checked": false, "children": [] },
+                { "id": "d96", "type": "check", "text": "鼠标", "checked": false, "children": [] },
+                { "id": "d97", "type": "check", "text": "鼠标垫", "checked": false, "children": [] },
+                { "id": "d98", "type": "check", "text": "电脑支架", "checked": false, "children": [] }
+              ]
+            },
+            { "id": "d99", "type": "check", "text": "雨伞", "checked": false, "children": [] }
+          ]
+        }
+      ]
+    }
+  ]
+}

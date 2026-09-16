@@ -1,0 +1,826 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>行李清单</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Crect x='3' y='7' width='18' height='13' rx='2' fill='%232383e2'/%3E%3Crect x='9' y='4' width='6' height='3.6' rx='1' fill='%232383e2'/%3E%3Crect x='10.4' y='11' width='3.2' height='4.4' rx='1' fill='%23191919'/%3E%3C/svg%3E">
+<style>
+  :root{
+    --bg:#191919;
+    --bg2:#202020;
+    --bg3:#262626;
+    --border:rgba(255,255,255,.09);
+    --text:rgba(255,255,255,.81);
+    --muted:rgba(255,255,255,.45);
+    --faint:rgba(255,255,255,.28);
+    --hover:rgba(255,255,255,.055);
+    --accent:#2383e2;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{scrollbar-color:#3a3a3a #191919}
+  body{
+    background:var(--bg);
+    color:var(--text);
+    font-family:ui-sans-serif,-apple-system,BlinkMacSystemFont,"Segoe UI","Helvetica Neue",Arial,"Noto Sans SC","PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
+    font-size:15px;
+    line-height:1.55;
+    -webkit-font-smoothing:antialiased;
+  }
+  ::selection{background:rgba(35,131,226,.35)}
+  button{font-family:inherit;font-size:inherit;color:inherit;background:none;border:none;cursor:pointer}
+  button:focus-visible{outline:1px solid var(--accent);outline-offset:1px;border-radius:3px}
+
+  /* ===== 顶栏 ===== */
+  .topbar{
+    position:sticky;top:0;z-index:50;
+    display:flex;align-items:center;justify-content:space-between;gap:12px;
+    padding:10px 28px;
+    background:rgba(25,25,25,.92);
+    backdrop-filter:blur(8px);
+    border-bottom:1px solid var(--border);
+  }
+  .crumb{display:flex;align-items:center;gap:8px;color:var(--muted);font-size:13px}
+  .crumb .dot{color:var(--faint)}
+  .crumb svg{opacity:.85}
+  .top-actions{display:flex;align-items:center;gap:8px}
+  .save-hint{font-size:12px;color:var(--faint);margin-right:4px;white-space:nowrap}
+  .tbtn{
+    font-size:12.5px;color:var(--muted);
+    padding:4px 10px;border-radius:6px;
+    border:1px solid var(--border);background:var(--bg2);
+    transition:color .15s,background .15s;
+    white-space:nowrap;
+  }
+  .tbtn:hover{color:var(--text);background:var(--bg3)}
+  .tbtn:disabled{opacity:.38;cursor:default}
+  .tbtn:disabled:hover{color:var(--muted);background:var(--bg2)}
+  .tbtn.danger{color:#ff7a7a;border-color:rgba(255,122,122,.45)}
+  .tbtn.danger:hover{background:rgba(255,122,122,.12)}
+
+  /* ===== 主体 ===== */
+  .wrap{
+    max-width:820px;margin:0 auto;
+    padding:34px 32px 90px;
+  }
+  .title-row{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;margin-bottom:6px}
+  h1{font-size:30px;font-weight:700;letter-spacing:.2px;color:rgba(255,255,255,.9)}
+  .progress{font-size:13px;color:var(--muted);white-space:nowrap;padding-bottom:4px}
+  .pbar{height:3px;border-radius:2px;background:rgba(255,255,255,.08);margin-bottom:26px;overflow:hidden}
+  .pfill{height:100%;width:0;background:var(--accent);border-radius:2px;transition:width .25s ease}
+
+  /* ===== 层级卡片（莫兰迪色系：同级同色系不同色调，异级不同色系） ===== */
+  .card{
+    background:var(--cbg);
+    border:1px solid var(--cborder);
+    border-left:3px solid var(--cacc);
+    border-radius:12px;
+    padding:8px 12px 10px;
+    margin:0 0 12px;
+  }
+  /* 第一层 · 冷色系（雾蓝 / 青灰 / 靛灰） */
+  .card.lv1.c0{--cbg:#22303f;--cborder:rgba(143,168,201,.20);--cacc:#8fa8c9}
+  .card.lv1.c1{--cbg:#1f3235;--cborder:rgba(134,179,171,.20);--cacc:#86b3ab}
+  .card.lv1.c2{--cbg:#292e40;--cborder:rgba(155,163,204,.20);--cacc:#9ba3cc}
+  .card.lv1.c3{--cbg:#2b3036;--cborder:rgba(168,176,187,.20);--cacc:#a8b0bb}
+  .card.lv1.c4{--cbg:#1e3342;--cborder:rgba(132,174,205,.20);--cacc:#84aecd}
+  .card.lv1.c5{--cbg:#25323b;--cborder:rgba(146,170,186,.20);--cacc:#92aaba}
+  /* 第二层 · 暖灰绿系（橄榄 / 苔绿 / 鼠尾草） */
+  .card.lv2.c0{--cbg:#2b3328;--cborder:rgba(166,187,145,.20);--cacc:#a6bb91}
+  .card.lv2.c1{--cbg:#33342b;--cborder:rgba(191,192,142,.20);--cacc:#bfc08e}
+  .card.lv2.c2{--cbg:#24312d;--cborder:rgba(143,181,155,.20);--cacc:#8fb59b}
+  .card.lv2.c3{--cbg:#31352f;--cborder:rgba(174,184,166,.20);--cacc:#aeb8a6}
+  .card.lv2.c4{--cbg:#2a3026;--cborder:rgba(159,176,138,.20);--cacc:#9fb08a}
+  .card.lv2.c5{--cbg:#34322c;--cborder:rgba(184,176,150,.20);--cacc:#b8b096}
+  /* 第三层 · 灰紫系（梅子 / 烟紫 / 干枯玫瑰） */
+  .card.lv3.c0{--cbg:#332b38;--cborder:rgba(183,159,196,.20);--cacc:#b79fc4}
+  .card.lv3.c1{--cbg:#3a2e36;--cborder:rgba(196,163,174,.20);--cacc:#c4a3ae}
+  .card.lv3.c2{--cbg:#2f2a36;--cborder:rgba(169,160,192,.20);--cacc:#a9a0c0}
+  .card.lv3.c3{--cbg:#382f32;--cborder:rgba(189,166,160,.20);--cacc:#bda6a0}
+  .card.lv3.c4{--cbg:#342b33;--cborder:rgba(184,160,180,.20);--cacc:#b8a0b4}
+  .card.lv3.c5{--cbg:#3b3033;--cborder:rgba(192,169,168,.20);--cacc:#c0a9a8}
+  /* 第四层及以上 · 中性灰 */
+  .card.lv4.c0{--cbg:#2b2b2b;--cborder:rgba(255,255,255,.09);--cacc:#b8b8b8}
+  .card.lv4.c1{--cbg:#2e2e2e;--cborder:rgba(255,255,255,.09);--cacc:#c2c2c2}
+
+  #tree{padding-left:2px}
+  .node{position:relative}
+  .card > .children{padding-left:0}
+  .node:not(.card) > .children{padding-left:22px}
+  .children{display:none}
+  .children.open{display:block}
+
+  .row{
+    position:relative;
+    display:flex;align-items:center;gap:6px;
+    min-height:27px;
+    padding:1px 6px 1px 30px;
+    border-radius:4px;
+  }
+  .row:hover{background:var(--hover)}
+  .row.hdr{padding-left:28px;min-height:30px}
+  .row.hdr .txt{font-weight:600;color:rgba(255,255,255,.92)}
+  .card .row.hdr .chev{color:var(--cacc)}
+
+  .add{
+    position:absolute;left:5px;top:50%;transform:translateY(-50%);
+    width:19px;height:19px;line-height:1;border-radius:4px;
+    color:var(--accent);opacity:0;transition:opacity .12s,background .12s;
+    display:flex;align-items:center;justify-content:center;
+  }
+  .add:hover{background:rgba(255,255,255,.1)}
+  .row:hover .add{opacity:1}
+
+  .chev{
+    width:16px;height:16px;flex:0 0 auto;
+    display:flex;align-items:center;justify-content:center;
+    color:rgba(255,255,255,.62);
+    transition:transform .15s ease;
+  }
+  .chev svg{transition:transform .15s ease;transform:rotate(90deg)}
+  .row.collapsed .chev svg{transform:rotate(0deg)}
+
+  .cb{
+    width:15px;height:15px;flex:0 0 auto;
+    border:1.6px solid rgba(255,255,255,.55);
+    border-radius:3.5px;
+    display:flex;align-items:center;justify-content:center;
+    transition:background .12s,border-color .12s;
+  }
+  .cb:hover{border-color:var(--accent)}
+  .cb.on{background:var(--accent);border-color:var(--accent)}
+  .cb svg{opacity:0;transition:opacity .12s}
+  .cb.on svg{opacity:1}
+
+  .txt{
+    flex:1 1 auto;min-width:2em;min-height:1.4em;
+    outline:none;cursor:text;
+    word-break:break-word;white-space:pre-wrap;
+    border-radius:2px;
+  }
+  .txt:focus{background:rgba(255,255,255,.045)}
+  .node.done .txt{color:rgba(255,255,255,.4);text-decoration:line-through}
+
+  .hover-right{
+    display:flex;gap:1px;flex:0 0 auto;
+    opacity:0;transition:opacity .12s;
+  }
+  .row:hover .hover-right{opacity:1}
+  .act{
+    width:21px;height:21px;border-radius:4px;
+    display:flex;align-items:center;justify-content:center;
+    color:var(--muted);font-size:13px;line-height:1;
+  }
+  .act:hover{background:rgba(255,255,255,.1);color:var(--text)}
+  .act.del:hover{color:#ff7a7a}
+
+  .ghost{
+    color:var(--faint);font-size:13.5px;
+    padding:2px 6px 2px 28px;border-radius:4px;
+    opacity:0;transition:opacity .12s,color .12s;
+    cursor:pointer;user-select:none;
+  }
+  .ghost:hover{color:var(--accent);background:var(--hover)}
+  .card:hover>.ghost{opacity:1}
+  #tree:hover>.ghost{opacity:1}
+
+  .hint{
+    margin-top:26px;padding-top:16px;
+    border-top:1px solid var(--border);
+    color:var(--faint);font-size:12.5px;line-height:1.9;
+  }
+  .hint kbd{
+    background:var(--bg2);border:1px solid var(--border);
+    border-bottom-width:2px;border-radius:4px;
+    padding:0 5px;font-family:inherit;font-size:11.5px;color:var(--muted);
+  }
+
+  /* ===== Toast ===== */
+  #toast{
+    position:fixed;left:50%;bottom:34px;transform:translateX(-50%) translateY(14px);
+    background:var(--bg3);border:1px solid var(--border);
+    color:var(--text);font-size:13px;
+    padding:7px 16px;border-radius:20px;
+    opacity:0;pointer-events:none;
+    transition:opacity .2s,transform .2s;
+    z-index:99;
+  }
+  #toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+  /* ===== 触屏 / 小屏适配 ===== */
+  @media (pointer:coarse){
+    .add{opacity:.6}
+    .hover-right{opacity:.55}
+    .ghost{opacity:.55}
+  }
+  @media (max-width:640px){
+    .topbar{flex-wrap:wrap;padding:8px 14px;row-gap:6px}
+    .wrap{padding:26px 14px 70px}
+    .save-hint{display:none}
+    .card{padding:6px 10px 8px}
+  }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="crumb">
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12 L21 4 l-6 15 -4-5 -5-2z"/><path d="M21 4 L11 13"/></svg>
+    <span>出行</span><span class="dot">/</span><span style="color:var(--text)">行李清单</span>
+  </div>
+  <div class="top-actions">
+    <span class="save-hint" id="saveHint">已自动保存</span>
+    <button class="tbtn" id="btnUndo" title="撤销（Ctrl+Z）">撤销</button>
+    <button class="tbtn" id="btnRedo" title="重做（Ctrl+Y）">重做</button>
+    <button class="tbtn" id="btnExpandAll">全部展开</button>
+    <button class="tbtn" id="btnCollapseAll">全部收起</button>
+    <button class="tbtn" id="btnExport">导出</button>
+    <button class="tbtn" id="btnImport">导入</button>
+    <button class="tbtn" id="btnUpdateDefault" title="把当前内容生成云端默认更新文件（luggage-default.json），发给我即可同步部署">更新默认清单</button>
+    <button class="tbtn" id="btnReset">恢复默认清单</button>
+    <input type="file" id="fileInput" accept=".json,application/json" hidden>
+  </div>
+</div>
+
+<div class="wrap">
+  <div class="title-row">
+    <h1>📜行李清单</h1>
+    <span class="progress" id="progressText">已装 0 / 0</span>
+  </div>
+  <div class="pbar"><div class="pfill" id="pfill"></div></div>
+  <div id="tree"></div>
+  <div class="hint">
+    <div>点击文字即可编辑；<kbd>Enter</kbd> 在下方新建条目；<kbd>Tab</kbd> 缩进为子项、<kbd>Shift+Tab</kbd> 反缩进；空条目按 <kbd>Backspace</kbd> 删除；<kbd>Ctrl+Z</kbd> 撤销、<kbd>Ctrl+Y</kbd> 重做。</div>
+    <div>悬停条目可：＋插入、↑↓移动、⇄转折叠组/条目、×删除。所有修改自动保存在本机浏览器。</div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+"use strict";
+/* ================= 数据模型 ================= */
+const KEY = "luggage_checklist_v1";
+const REPO_OWNER = "ShiSi14-0716";
+const REPO_NAME = "luggage-checklist";
+const DEFAULT_URL = "https://raw.githubusercontent.com/" + REPO_OWNER + "/" + REPO_NAME + "/main/luggage-default.json";
+let uidc = 0;
+const nid = () => "n" + (++uidc) + "_" + Math.random().toString(36).slice(2, 7);
+const clone = x => JSON.parse(JSON.stringify(x));
+const check = (text, children) => ({ id: nid(), type: "check", text, checked: false, children: children || [] });
+const toggle = (text, color, children) => ({ id: nid(), type: "toggle", text, color: color || "gray", expanded: true, children: children || [] });
+
+function seedData() {
+  return [
+    toggle("⁉️出发当日拿（提前备好）", "red", [
+      check("出发衣物（含袜子）"),
+      check("牙刷（满电）"),
+      check("手机充电线（塞背包-电子包）"),
+      check("平板充电线（塞背包-电子包）"),
+      check("扔垃圾"),
+      check("快坏的水果"),
+    ]),
+    toggle("🧳行李箱（路上不拿出来）", "purple", [
+      toggle("衣物包", "pink", [
+        toggle("贴身衣物", "gray", [
+          check("内衣"), check("内裤"), check("袜子"), check("帽巾"), check("浴巾"),
+        ]),
+        check("外穿衣物"), check("睡衣"), check("夏·防晒衣/冬·秋衣"), check("背包"), check("拖鞋"),
+      ]),
+      toggle("洗漱包", "blue", [
+        check("牙刷"), check("卸妆膏"), check("洗面奶"), check("擦脸巾"),
+        check("夏·保湿/冬·面霜"), check("凡士林"), check("梳子"), check("洗发水"),
+        check("护发素"), check("护发精油"), check("卷发筒"), check("卷发袜"), check("沐浴露"),
+      ]),
+      toggle("化妆包", "pink", [
+        check("美瞳"), check("防晒"), check("遮瑕(固&液)"), check("气垫"), check("双眼皮贴"),
+        check("修容"), check("腮红"), check("口红"), check("眼影"), check("化妆刷"), check("小镜子"),
+      ]),
+      toggle("电脑包", "blue", [
+        check("电脑"), check("充电线"), check("鼠标"), check("鼠标垫"), check("电脑支架"),
+      ]),
+      toggle("电子包", "green", [
+        check("有线耳机"), check("手机充电线"),
+        check("平板充电头", [check("平板充电线")]),
+        check("usb充电头", [check("手表充电线"), check("typeC充电线")]),
+      ]),
+      toggle("药包（很少变动）", "orange", [
+        check("偏头痛"), check("碘伏棉签"), check("创口贴"), check("布洛芬"), check("石脱蒙散"),
+      ]),
+    ]),
+    toggle("🎒背包（路上会用到）", "yellow", [
+      toggle("护理包", "orange", [
+        check("口罩"), check("卫生巾"), check("酒精棉片"), check("发绳"), check("润唇膏"),
+        check("夏·驱蚊液/冬·护手霜"), check("口喷"), check("风油精"), check("指甲剪"),
+        check("眼镜盒"), check("衣物免洗剂"), check("偏头痛（小颗）"), check("布洛芬（小颗）"),
+      ]),
+      toggle("杂物", "green", [
+        check("纸巾"), check("湿厕纸"), check("充电宝"), check("蓝牙耳机"), check("风扇"),
+      ]),
+    ]),
+    toggle("🫴🏻外部", "blue", [
+      check("钥匙"), check("外套"), check("手机（身份证）"),
+      toggle("飞机安检版", "gray", [
+        toggle("电脑包（选）", "blue", [
+          check("电脑"), check("充电线"), check("鼠标"), check("鼠标垫"), check("电脑支架"),
+        ]),
+        check("雨伞"),
+      ]),
+    ]),
+  ];
+}
+
+let items = [];
+
+/* 云端默认版本：打开页面时拉取最新默认，本地工作副本较新则保留本地 */
+async function fetchCloudDefault() {
+  try {
+    const res = await fetch(DEFAULT_URL + "?v=" + Date.now(), { cache: "no-store" });
+    if (!res.ok) return null;
+    const data = await res.json();
+    return (data && Array.isArray(data.items)) ? data : null;
+  } catch (e) { return null; }
+}
+async function initData() {
+  let local = null;
+  try {
+    const raw = localStorage.getItem(KEY);
+    if (raw) local = JSON.parse(raw);
+  } catch (e) { /* 忽略损坏的存档 */ }
+  const cloud = await fetchCloudDefault();
+  if (cloud) {
+    const cloudTime = Date.parse(cloud.updatedAt) || 0;
+    const localTime = (local && local.savedAt) ? Date.parse(local.savedAt) : 0;
+    if (local && local.items && localTime >= cloudTime) {
+      items = local.items;             /* 本地工作副本更新或与云端一致 → 保留本地 */
+    } else {
+      items = cloud.items;             /* 云端默认更新 → 采用最新默认 */
+      localStorage.setItem(KEY, JSON.stringify({ items: clone(items), savedAt: new Date().toISOString() }));
+    }
+  } else if (local && local.items) {
+    items = local.items;
+  } else {
+    items = seedData();
+  }
+}
+
+/* ================= 工具函数 ================= */
+function locate(arr, id) {
+  for (let i = 0; i < arr.length; i++) {
+    if (arr[i].id === id) return { arr, idx: i, parent: null };
+    if (arr[i].children && arr[i].children.length) {
+      const r = locate(arr[i].children, id);
+      if (r) return { arr: r.arr, idx: r.idx, parent: arr[i] };
+    }
+  }
+  return null;
+}
+function countChecks(nodes) {
+  let total = 0, done = 0;
+  (function walk(list) {
+    for (const n of list) {
+      if (n.type === "check") { total++; if (n.checked) done++; }
+      if (n.children && n.children.length) walk(n.children);
+    }
+  })(nodes);
+  return { total, done };
+}
+function setExpandedAll(nodes, v) {
+  for (const n of nodes) {
+    if (n.type === "toggle") n.expanded = v;
+    if (n.children && n.children.length) setExpandedAll(n.children, v);
+  }
+}
+
+/* ================= 撤销 / 重做 ================= */
+const undoStack = [];
+const redoStack = [];
+const undoBtn = document.getElementById("btnUndo");
+const redoBtn = document.getElementById("btnRedo");
+function snapshot() {
+  undoStack.push(clone(items));
+  if (undoStack.length > 60) undoStack.shift();
+  redoStack.length = 0;
+  updateBtnState();
+}
+function undo() {
+  const prev = undoStack.pop();
+  if (!prev) { toast("没有可撤销的操作"); return; }
+  redoStack.push(clone(items));
+  items = prev; render(); updateBtnState(); toast("已撤销");
+}
+function redo() {
+  const next = redoStack.pop();
+  if (!next) { toast("没有可重做的操作"); return; }
+  undoStack.push(clone(items));
+  items = next; render(); updateBtnState(); toast("已重做");
+}
+function updateBtnState() {
+  undoBtn.disabled = undoStack.length === 0;
+  redoBtn.disabled = redoStack.length === 0;
+}
+
+/* ================= 渲染 ================= */
+const tree = document.getElementById("tree");
+const el = (tag, cls) => { const d = document.createElement(tag); if (cls) d.className = cls; return d; };
+
+const SVG_CHEV = '<svg width="10" height="10" viewBox="0 0 10 10"><path d="M2 1.5 L8 5 L2 8.5 Z" fill="currentColor"/></svg>';
+const SVG_CHECK = '<svg width="10" height="10" viewBox="0 0 12 12"><path d="M2.5 6.2 L5 8.6 L9.6 3.4" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+
+function renderNode(n, depth, idx) {
+  const node = el("div", "node");
+  node.dataset.id = n.id;
+  if (n.type === "check" && n.checked) node.classList.add("done");
+
+  const row = el("div", "row");
+  row.dataset.id = n.id;
+  row.dataset.type = n.type;
+
+  if (n.type === "toggle") {
+    node.classList.add("card");
+    node.classList.add("lv" + Math.min(depth + 1, 4));
+    node.classList.add("c" + (idx % 6));
+    row.classList.add("hdr");
+    if (!n.expanded) row.classList.add("collapsed");
+  }
+
+  const addB = el("button", "act add");
+  addB.title = "在此后添加条目";
+  addB.innerHTML = '<svg width="13" height="13" viewBox="0 0 12 12"><path d="M6 1.5 v9 M1.5 6 h9" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>';
+
+  if (n.type === "toggle") {
+    const ch = el("button", "chev");
+    ch.title = n.expanded ? "收起" : "展开";
+    ch.innerHTML = SVG_CHEV;
+    row.appendChild(ch);
+  } else {
+    const cb = el("button", "cb" + (n.checked ? " on" : ""));
+    cb.title = "勾选 / 取消";
+    cb.innerHTML = SVG_CHECK;
+    row.appendChild(cb);
+  }
+  const txt = el("div", "txt");
+  txt.contentEditable = "true";
+  txt.spellcheck = false;
+  txt.textContent = n.text || "";
+  row.appendChild(txt);
+
+  const hr = el("div", "hover-right");
+  const mk = (cls, t, html) => { const b = el("button", "act " + cls); b.title = t; b.innerHTML = html; return b; };
+  hr.appendChild(mk("up", "上移", "↑"));
+  hr.appendChild(mk("down", "下移", "↓"));
+  hr.appendChild(mk("outdent", "反缩进（Shift+Tab）", "←"));
+  hr.appendChild(mk("indent", "缩进为子项（Tab）", "→"));
+  hr.appendChild(mk("type", "转折叠组 / 转条目", "⇄"));
+  hr.appendChild(mk("del", "删除", "×"));
+  row.appendChild(hr);
+
+  row.insertBefore(addB, row.firstChild);
+  node.appendChild(row);
+
+  const kids = el("div", "children");
+  if (n.children && n.children.length) {
+    const childDepth = n.type === "toggle" ? depth + 1 : depth;
+    n.children.forEach((c, i) => kids.appendChild(renderNode(c, childDepth, i)));
+    if (n.type === "toggle" ? n.expanded : true) kids.classList.add("open");
+  }
+  node.appendChild(kids);
+
+  if (n.type === "toggle" || (n.children && n.children.length)) {
+    const ghost = el("div", "ghost");
+    ghost.dataset.pid = n.id;
+    ghost.innerHTML = "＋ 在此组添加";
+    node.appendChild(ghost);
+  }
+  return node;
+}
+
+function render() {
+  tree.innerHTML = "";
+  items.forEach((n, i) => tree.appendChild(renderNode(n, 0, i)));
+  const ghost = el("div", "ghost");
+  ghost.dataset.pid = "root";
+  ghost.innerHTML = "＋ 添加条目";
+  tree.appendChild(ghost);
+  updateProgress();
+  save();
+}
+
+function updateProgress() {
+  const { total, done } = countChecks(items);
+  document.getElementById("progressText").textContent = "已装 " + done + " / " + total;
+  document.getElementById("pfill").style.width = total ? (done / total * 100).toFixed(1) + "%" : "0%";
+}
+
+/* ================= 持久化 ================= */
+let saveTimer = null;
+function save() {
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(() => {
+    try {
+      localStorage.setItem(KEY, JSON.stringify({ items, savedAt: new Date().toISOString() }));
+      document.getElementById("saveHint").textContent = "已自动保存";
+    } catch (e) { /* 存储满等异常忽略 */ }
+  }, 250);
+}
+
+/* ================= 操作 ================= */
+function focusText(id) {
+  const t = tree.querySelector('.row[data-id="' + id + '"] .txt');
+  if (!t) return;
+  t.focus();
+  const r = document.createRange();
+  r.selectNodeContents(t);
+  r.collapse(false);
+  const s = window.getSelection();
+  s.removeAllRanges();
+  s.addRange(r);
+}
+
+function addNodeAfter(id) {
+  const loc = locate(items, id);
+  if (!loc) return;
+  snapshot();
+  const node = check("");
+  loc.arr.splice(loc.idx + 1, 0, node);
+  render();
+  focusText(node.id);
+}
+function addChild(pid) {
+  snapshot();
+  let node;
+  if (pid === "root") {
+    node = check("");
+    items.push(node);
+  } else {
+    const loc = locate(items, pid);
+    if (!loc) return;
+    loc.arr[loc.idx].children.push(node = check(""));
+  }
+  render();
+  focusText(node.id);
+}
+function delNode(id) {
+  const loc = locate(items, id);
+  if (!loc) return;
+  snapshot();
+  const node = loc.arr[loc.idx];
+  const kids = (node.children || []).slice();
+  loc.arr.splice(loc.idx, 1);
+  if (kids.length) loc.arr.splice.apply(loc.arr, [loc.idx, 0].concat(kids));
+  render();
+}
+function indent(id) {
+  const loc = locate(items, id);
+  if (!loc || loc.idx === 0) return;
+  snapshot();
+  const node = loc.arr.splice(loc.idx, 1)[0];
+  const prev = loc.arr[loc.idx - 1];
+  if (!prev.children) prev.children = [];
+  prev.children.push(node);
+  render();
+  focusText(id);
+}
+function outdent(id) {
+  const loc = locate(items, id);
+  if (!loc || !loc.parent) return;
+  snapshot();
+  const node = loc.arr.splice(loc.idx, 1)[0];
+  const ploc = locate(items, loc.parent.id);
+  ploc.arr.splice(ploc.idx + 1, 0, node);
+  render();
+  focusText(id);
+}
+function move(id, dir) {
+  const loc = locate(items, id);
+  if (!loc) return;
+  const j = loc.idx + dir;
+  if (j < 0 || j >= loc.arr.length) return;
+  snapshot();
+  const arr = loc.arr;
+  const tmp = arr[loc.idx];
+  arr[loc.idx] = arr[j];
+  arr[j] = tmp;
+  render();
+  focusText(id);
+}
+function toggleType(id) {
+  const loc = locate(items, id);
+  if (!loc) return;
+  snapshot();
+  const n = loc.arr[loc.idx];
+  if (n.type === "toggle") {
+    n.type = "check";
+    delete n.expanded;
+  } else {
+    n.type = "toggle";
+    n.expanded = true;
+  }
+  render();
+}
+function toggleCheck(id) {
+  const loc = locate(items, id);
+  if (!loc) return;
+  snapshot();
+  const n = loc.arr[loc.idx];
+  n.checked = !n.checked;
+  updateProgress();
+  save();
+  const row = tree.querySelector('.row[data-id="' + id + '"]');
+  const node = row.closest(".node");
+  node.classList.toggle("done", !!n.checked);
+  const cb = row.querySelector(".cb");
+  cb.classList.toggle("on", !!n.checked);
+}
+function toggleExpand(id) {
+  const loc = locate(items, id);
+  if (!loc) return;
+  const n = loc.arr[loc.idx];
+  if (n.type !== "toggle") return;
+  snapshot();
+  n.expanded = !n.expanded;
+  const row = tree.querySelector('.row[data-id="' + id + '"]');
+  row.classList.toggle("collapsed", !n.expanded);
+  const kids = row.parentNode.querySelector(":scope > .children");
+  if (kids) kids.classList.toggle("open", !!n.expanded);
+  save();
+}
+
+/* ================= 事件 ================= */
+document.addEventListener("click", e => {
+  const addB = e.target.closest(".add");
+  if (addB) { addNodeAfter(addB.closest(".row").dataset.id); return; }
+  const ghost = e.target.closest(".ghost");
+  if (ghost) { addChild(ghost.dataset.pid); return; }
+  const act = e.target.closest(".act");
+  if (act) {
+    const id = act.closest(".row").dataset.id;
+    if (act.classList.contains("up")) move(id, -1);
+    else if (act.classList.contains("down")) move(id, 1);
+    else if (act.classList.contains("outdent")) outdent(id);
+    else if (act.classList.contains("indent")) indent(id);
+    else if (act.classList.contains("type")) toggleType(id);
+    else if (act.classList.contains("del")) delNode(id);
+    return;
+  }
+  const chev = e.target.closest(".chev");
+  if (chev) { toggleExpand(chev.closest(".row").dataset.id); return; }
+  const cb = e.target.closest(".cb");
+  if (cb) { toggleCheck(cb.closest(".row").dataset.id); return; }
+  const row = e.target.closest(".row");
+  if (row && row.dataset.type === "toggle" && !e.target.closest(".txt")) {
+    toggleExpand(row.dataset.id);
+  }
+});
+
+document.addEventListener("keydown", e => {
+  const k = e.key.toLowerCase();
+  if ((e.ctrlKey || e.metaKey) && (k === "z" || k === "y")) {
+    e.preventDefault();
+    if (k === "z") { e.shiftKey ? redo() : undo(); }
+    else { redo(); }
+    return;
+  }
+  const t = e.target && e.target.classList && e.target.classList.contains("txt") ? e.target : null;
+  if (!t) return;
+  const id = t.closest(".row").dataset.id;
+  if (e.key === "Enter" && !e.shiftKey && !e.ctrlKey && !e.metaKey) {
+    e.preventDefault(); addNodeAfter(id); return;
+  }
+  if (e.key === "Tab") {
+    e.preventDefault();
+    if (e.shiftKey) outdent(id); else indent(id);
+    return;
+  }
+  if (e.key === "Backspace" && t.textContent === "") {
+    e.preventDefault(); delNode(id);
+  }
+});
+
+document.addEventListener("focusin", e => {
+  if (e.target && e.target.classList && e.target.classList.contains("txt")) snapshot();
+});
+
+document.addEventListener("input", e => {
+  if (e.target && e.target.classList && e.target.classList.contains("txt")) {
+    const id = e.target.closest(".row").dataset.id;
+    const loc = locate(items, id);
+    if (loc) { loc.arr[loc.idx].text = e.target.textContent; save(); }
+  }
+});
+
+document.addEventListener("blur", e => {
+  const t = e.target;
+  if (t && t.classList && t.classList.contains("txt")) {
+    const id = t.closest(".row").dataset.id;
+    const loc = locate(items, id);
+    if (!loc) return;
+    const n = loc.arr[loc.idx];
+    const txt = (t.textContent || "").trim();
+    if (txt === "" && (!n.children || !n.children.length)) {
+      delNode(id);
+    } else if (txt !== n.text) {
+      n.text = txt;
+      t.textContent = txt;
+      save();
+    }
+  }
+}, true);
+
+/* ================= 顶栏 ================= */
+undoBtn.addEventListener("click", undo);
+redoBtn.addEventListener("click", redo);
+document.getElementById("btnExpandAll").addEventListener("click", () => { snapshot(); setExpandedAll(items, true); render(); });
+document.getElementById("btnCollapseAll").addEventListener("click", () => { snapshot(); setExpandedAll(items, false); render(); });
+
+/* 更新默认清单：把当前内容生成为云端更新文件，发给助手即可同步部署 */
+document.getElementById("btnUpdateDefault").addEventListener("click", () => {
+  const payload = { items: clone(items), updatedAt: new Date().toISOString() };
+  const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "luggage-default.json";
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(a.href);
+  toast("已生成 luggage-default.json，发给我即可同步到云端");
+});
+
+/* 恢复默认清单：两次点击确认，防止误触；优先恢复云端最新默认 */
+const resetBtn = document.getElementById("btnReset");
+let resetArmed = false, resetTimer = null;
+resetBtn.addEventListener("click", async () => {
+  if (!resetArmed) {
+    resetArmed = true;
+    resetBtn.textContent = "确认恢复？";
+    resetBtn.classList.add("danger");
+    clearTimeout(resetTimer);
+    resetTimer = setTimeout(disarmReset, 3000);
+    return;
+  }
+  disarmReset();
+  const cloud = await fetchCloudDefault();
+  snapshot();
+  items = cloud ? clone(cloud.items) : seedData();
+  render();
+  toast(cloud ? "已恢复云端默认清单" : "已恢复内置默认清单");
+});
+function disarmReset() {
+  resetArmed = false;
+  clearTimeout(resetTimer);
+  resetBtn.textContent = "恢复默认清单";
+  resetBtn.classList.remove("danger");
+}
+
+document.getElementById("btnExport").addEventListener("click", () => {
+  const data = JSON.stringify({ items, exportedAt: new Date().toISOString() }, null, 2);
+  const blob = new Blob([data], { type: "application/json" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "行李清单_" + new Date().toISOString().slice(0, 10) + ".json";
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(a.href);
+  toast("已导出");
+});
+document.getElementById("btnImport").addEventListener("click", () => document.getElementById("fileInput").click());
+document.getElementById("fileInput").addEventListener("change", e => {
+  const f = e.target.files[0];
+  if (!f) return;
+  const rd = new FileReader();
+  rd.onload = () => {
+    try {
+      const parsed = JSON.parse(rd.result);
+      if (!parsed || !Array.isArray(parsed.items)) throw new Error("格式不符");
+      snapshot();
+      items = parsed.items;
+      render();
+      toast("已导入");
+    } catch (err) {
+      toast("导入失败：文件格式不正确");
+    }
+    e.target.value = "";
+  };
+  rd.readAsText(f);
+});
+
+/* ================= Toast ================= */
+let toastTimer = null;
+function toast(msg) {
+  const t = document.getElementById("toast");
+  t.textContent = msg;
+  t.classList.add("show");
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove("show"), 1600);
+}
+
+(async function init() {
+  await initData();
+  render();
+  updateBtnState();
+})();
+</script>
+</body>
+</html>
