@@ -121,6 +121,12 @@
   .row.hdr{padding-left:28px;min-height:30px}
   .row.hdr .txt{font-weight:600;color:rgba(255,255,255,.92)}
   .card .row.hdr .chev{color:var(--cacc)}
+  /* 层级字号：越深越小 */
+  .lv1 .txt{font-size:17.5px}
+  .lv2 .txt{font-size:16px}
+  .lv3 .txt{font-size:14.5px}
+  .lv4 .txt{font-size:13.5px}
+  .lemoji{margin-right:4px;flex:0 0 auto}
 
   .add{
     position:absolute;left:5px;top:50%;transform:translateY(-50%);
@@ -428,6 +434,28 @@ const el = (tag, cls) => { const d = document.createElement(tag); if (cls) d.cla
 const SVG_CHEV = '<svg width="10" height="10" viewBox="0 0 10 10"><path d="M2 1.5 L8 5 L2 8.5 Z" fill="currentColor"/></svg>';
 const SVG_CHECK = '<svg width="10" height="10" viewBox="0 0 12 12"><path d="M2.5 6.2 L5 8.6 L9.6 3.4" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 
+/* 母层级 emoji：已知关键词优先，未知按层级色板兜底；文本已以 emoji 开头则不重复 */
+const EMOJI_RULES = [
+  ["贴身", "🧦"], ["洗漱", "🧴"], ["化妆", "💄"], ["电脑", "💻"], ["电子", "🔌"],
+  ["药", "💊"], ["护理", "🩹"], ["衣物", "👕"], ["杂物", "🧺"], ["飞机", "✈️"],
+];
+const LEVEL_EMOJI = [
+  ["🧳", "🎒", "📦", "🧰", "📁", "🗂️"],
+  ["📎", "🧷", "📌", "🖇️", "🔹", "🔸"],
+  ["🔹", "🔸"],
+];
+function isEmojiStart(s) {
+  const cp = s.codePointAt(0);
+  return (cp >= 0x1F000 && cp <= 0x1FAFF) || (cp >= 0x2600 && cp <= 0x27BF) || (cp >= 0x2000 && cp <= 0x206F);
+}
+function emojiFor(n, depth, idx) {
+  const t = (n.text || "").trim();
+  if (t && isEmojiStart(t)) return "";
+  for (const [kw, em] of EMOJI_RULES) if (t.includes(kw)) return em;
+  const pal = LEVEL_EMOJI[Math.min(depth, 2)];
+  return pal[idx % pal.length];
+}
+
 function renderNode(n, depth, idx) {
   const node = el("div", "node");
   node.dataset.id = n.id;
@@ -439,11 +467,11 @@ function renderNode(n, depth, idx) {
 
   if (n.type === "toggle") {
     node.classList.add("card");
-    node.classList.add("lv" + Math.min(depth + 1, 4));
     node.classList.add("c" + (idx % 6));
     row.classList.add("hdr");
     if (!n.expanded) row.classList.add("collapsed");
   }
+  node.classList.add("lv" + Math.min(depth + 1, 4));
 
   const addB = el("button", "act add");
   addB.title = "在此后添加条目";
@@ -464,6 +492,14 @@ function renderNode(n, depth, idx) {
   txt.contentEditable = "true";
   txt.spellcheck = false;
   txt.textContent = n.text || "";
+  if (n.type === "toggle") {
+    const em = emojiFor(n, depth, idx);
+    if (em) {
+      const es = el("span", "lemoji");
+      es.textContent = em;
+      row.appendChild(es);
+    }
+  }
   row.appendChild(txt);
 
   const hr = el("div", "hover-right");
