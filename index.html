@@ -34,16 +34,27 @@
   /* ===== 顶栏 ===== */
   .topbar{
     position:sticky;top:0;z-index:50;
-    display:flex;align-items:center;justify-content:space-between;gap:12px;
-    padding:10px 28px;
+    display:flex;flex-direction:column;gap:8px;
+    padding:10px 28px 8px;
     background:rgba(25,25,25,.92);
     backdrop-filter:blur(8px);
     border-bottom:1px solid var(--border);
   }
-  .crumb{display:flex;align-items:center;gap:8px;color:var(--muted);font-size:13px}
-  .crumb .dot{color:var(--faint)}
-  .crumb svg{opacity:.85}
-  .top-actions{display:flex;align-items:center;gap:8px}
+  .menubar{
+    display:flex;align-items:center;gap:6px;
+    overflow-x:auto;scrollbar-width:none;
+  }
+  .menubar::-webkit-scrollbar{display:none}
+  .scene{
+    font-size:13px;color:var(--muted);
+    padding:4px 15px;border-radius:999px;
+    border:1px solid var(--border);background:var(--bg2);
+    white-space:nowrap;flex:0 0 auto;
+    transition:color .15s,background .15s,border-color .15s;
+  }
+  .scene:hover{color:var(--text)}
+  .scene.on{color:#fff;background:rgba(35,131,226,.18);border-color:rgba(35,131,226,.55)}
+  .top-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
   .save-hint{font-size:12px;color:var(--faint);margin-right:4px;white-space:nowrap}
   .tbtn{
     font-size:12.5px;color:var(--muted);
@@ -57,16 +68,17 @@
   .tbtn:disabled:hover{color:var(--muted);background:var(--bg2)}
   .tbtn.danger{color:#ff7a7a;border-color:rgba(255,122,122,.45)}
   .tbtn.danger:hover{background:rgba(255,122,122,.12)}
+  .tbtn.icon{width:28px;height:28px;padding:0;display:inline-flex;align-items:center;justify-content:center}
 
   /* ===== 主体 ===== */
   .wrap{
     max-width:820px;margin:0 auto;
-    padding:34px 32px 90px;
+    padding:30px 32px 90px;
   }
   .title-row{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;margin-bottom:6px}
-  h1{font-size:30px;font-weight:700;letter-spacing:.2px;color:rgba(255,255,255,.9)}
+  h1{font-size:28px;font-weight:700;letter-spacing:.2px;color:rgba(255,255,255,.9)}
   .progress{font-size:13px;color:var(--muted);white-space:nowrap;padding-bottom:4px}
-  .pbar{height:3px;border-radius:2px;background:rgba(255,255,255,.08);margin-bottom:26px;overflow:hidden}
+  .pbar{height:3px;border-radius:2px;background:rgba(255,255,255,.08);margin-bottom:24px;overflow:hidden}
   .pfill{height:100%;width:0;background:var(--accent);border-radius:2px;transition:width .25s ease}
 
   /* ===== 层级卡片（莫兰迪色系：同级同色系不同色调，异级不同色系） ===== */
@@ -116,6 +128,7 @@
     min-height:27px;
     padding:1px 6px 1px 30px;
     border-radius:4px;
+    cursor:grab;
   }
   .row:hover{background:var(--hover)}
   .row.hdr{padding-left:28px;min-height:30px}
@@ -173,12 +186,18 @@
   }
   .row:hover .hover-right{opacity:1}
   .act{
-    width:21px;height:21px;border-radius:4px;
+    width:24px;height:24px;border-radius:4px;
     display:flex;align-items:center;justify-content:center;
-    color:var(--muted);font-size:13px;line-height:1;
+    color:var(--muted);font-size:14px;line-height:1;
   }
   .act:hover{background:rgba(255,255,255,.1);color:var(--text)}
   .act.del:hover{color:#ff7a7a}
+
+  /* 拖拽调序 */
+  .row.dragging{opacity:.35}
+  .row.drop-before{box-shadow:0 -2px 0 var(--accent)}
+  .row.drop-after{box-shadow:0 2px 0 var(--accent)}
+  .row.drop-child{box-shadow:inset 2px 0 0 var(--accent)}
 
   .ghost{
     color:var(--faint);font-size:13.5px;
@@ -216,13 +235,12 @@
   /* ===== 触屏 / 小屏适配 ===== */
   @media (pointer:coarse){
     .add{opacity:.6}
-    .hover-right{opacity:.55}
+    .hover-right{opacity:.6}
     .ghost{opacity:.55}
   }
   @media (max-width:640px){
-    .topbar{flex-wrap:wrap;padding:8px 14px;row-gap:6px}
-    .top-actions{flex-wrap:wrap;row-gap:6px}
-    .wrap{padding:26px 14px 70px}
+    .topbar{padding:8px 12px 6px;row-gap:6px}
+    .wrap{padding:24px 14px 70px}
     .save-hint{display:none}
     .card{padding:6px 10px 8px}
   }
@@ -231,20 +249,17 @@
 <body>
 
 <div class="topbar">
-  <div class="crumb">
-    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12 L21 4 l-6 15 -4-5 -5-2z"/><path d="M21 4 L11 13"/></svg>
-    <span>出行</span><span class="dot">/</span><span style="color:var(--text)">行李清单</span>
-  </div>
+  <div class="menubar" id="menubar"></div>
   <div class="top-actions">
     <span class="save-hint" id="saveHint">已自动保存</span>
-    <button class="tbtn" id="btnUndo" title="撤销（Ctrl+Z）">撤销</button>
-    <button class="tbtn" id="btnRedo" title="重做（Ctrl+Y）">重做</button>
-    <button class="tbtn" id="btnExpandAll">全部展开</button>
-    <button class="tbtn" id="btnCollapseAll">全部收起</button>
-    <button class="tbtn" id="btnExport">导出</button>
-    <button class="tbtn" id="btnImport">导入</button>
-    <button class="tbtn" id="btnUpdateDefault" title="把当前内容生成云端默认更新文件（luggage-default.json），发给我即可同步部署">更新默认清单</button>
-    <button class="tbtn" id="btnReset">恢复默认清单</button>
+    <button class="tbtn icon" id="btnUndo" title="撤销（Ctrl+Z）"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 14 4 9l5-5"/><path d="M4 9h10a6 6 0 0 1 0 12h-4"/></svg></button>
+    <button class="tbtn icon" id="btnRedo" title="重做（Ctrl+Y）"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 14 5-5-5-5"/><path d="M20 9H10a6 6 0 0 0 0 12h4"/></svg></button>
+    <button class="tbtn" id="btnExpandAll" title="全部展开">展开</button>
+    <button class="tbtn" id="btnCollapseAll" title="全部收起">收起</button>
+    <button class="tbtn icon" id="btnExport" title="导出"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg></button>
+    <button class="tbtn icon" id="btnImport" title="导入"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15V3"/><path d="m7 8 5-5 5 5"/><path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg></button>
+    <button class="tbtn" id="btnUpdateDefault" title="把当前场景内容生成云端默认更新文件（luggage-default.json），发给我即可同步部署">更新</button>
+    <button class="tbtn" id="btnReset" title="恢复当前场景默认清单">恢复</button>
     <input type="file" id="fileInput" accept=".json,application/json" hidden>
   </div>
 </div>
@@ -258,7 +273,7 @@
   <div id="tree"></div>
   <div class="hint">
     <div>点击文字即可编辑；<kbd>Enter</kbd> 在下方新建条目；<kbd>Tab</kbd> 缩进为子项、<kbd>Shift+Tab</kbd> 反缩进；空条目按 <kbd>Backspace</kbd> 删除；<kbd>Ctrl+Z</kbd> 撤销、<kbd>Ctrl+Y</kbd> 重做。</div>
-    <div>悬停条目可：＋插入、↑↓移动、⇄转折叠组/条目、×删除。所有修改自动保存在本机浏览器。</div>
+    <div>上下拖拽条目可调整顺序；悬停条目：← 退一级、→ 进一级、× 删除。所有修改自动保存在本机浏览器。</div>
   </div>
 </div>
 
@@ -267,7 +282,8 @@
 <script>
 "use strict";
 /* ================= 数据模型 ================= */
-const KEY = "luggage_checklist_v1";
+const KEY = "luggage_checklist_v2";
+const LEGACY_KEY = "luggage_checklist_v1";
 const REPO_OWNER = "ShiSi14-0716";
 const REPO_NAME = "luggage-checklist";
 const DEFAULT_URL = "https://raw.githubusercontent.com/" + REPO_OWNER + "/" + REPO_NAME + "/main/luggage-default.json";
@@ -277,7 +293,8 @@ const clone = x => JSON.parse(JSON.stringify(x));
 const check = (text, children) => ({ id: nid(), type: "check", text, checked: false, children: children || [] });
 const toggle = (text, color, children) => ({ id: nid(), type: "toggle", text, color: color || "gray", expanded: true, children: children || [] });
 
-function seedData() {
+/* ===== 场景模板（思维导图：出门清单） ===== */
+function seedTravel() {
   return [
     toggle("⁉️出发当日拿（提前备好）", "red", [
       check("出发衣物（含袜子）"),
@@ -336,10 +353,79 @@ function seedData() {
     ]),
   ];
 }
+function seedOuting() {
+  return [
+    toggle("出门必备", "red", [
+      check("手机"), check("钥匙(+指甲剪)"), check("耳机"), check("充电宝"),
+    ]),
+    toggle("出门plus", "orange", [
+      check("雨伞"), check("水杯"),
+    ]),
+    toggle("护理小包", "pink", [
+      check("纸巾"), check("头绳"), check("口罩"), check("消毒液"),
+      check("口香糖"), check("润唇膏"), check("护手霜"), check("卫生巾"),
+    ]),
+    toggle("护理小包补充", "orange", [
+      check("驱蚊液"), check("风油精"), check("创可贴"),
+    ]),
+    toggle("户外用品", "green", [
+      check("坐垫"), check("小扇子"), check("零食"), check("垃圾袋"),
+    ]),
+    toggle("防晒用品", "yellow", [
+      check("防晒衣"), check("防晒帽"), check("防晒口罩"),
+    ]),
+  ];
+}
+function seedWalk() {
+  return [
+    check("手机"), check("钥匙(+指甲剪)"), check("纸巾"), check("耳机"),
+  ];
+}
+function seedShopping() {
+  return [
+    toggle("出门必备", "red", [
+      check("手机"), check("钥匙(+指甲剪)"), check("耳机"), check("充电宝"),
+    ]),
+    toggle("出门plus", "orange", [
+      check("雨伞"),
+    ]),
+    toggle("护理小包", "pink", [
+      check("纸巾"), check("头绳"), check("口罩"), check("消毒液"),
+      check("口香糖"), check("润唇膏"), check("护手霜"), check("卫生巾"),
+    ]),
+  ];
+}
+function seedOffice() {
+  return [
+    check("电脑"),
+    toggle("出门必备", "red", [
+      check("手机"), check("钥匙(+指甲剪)"), check("耳机"), check("充电宝"),
+    ]),
+    toggle("出门plus", "orange", [
+      check("雨伞"), check("水杯"),
+    ]),
+    toggle("办公小包", "blue", [
+      check("电脑充电器"), check("眼镜布"), check("圆珠笔"), check("草稿纸"),
+    ]),
+    toggle("护理小包", "pink", [
+      check("纸巾"), check("头绳"), check("口罩"), check("消毒液"),
+      check("口香糖"), check("润唇膏"), check("护手霜"), check("卫生巾"),
+    ]),
+  ];
+}
+const SCENES = {
+  travel:   { label: "旅行", seed: seedTravel },
+  outing:   { label: "郊游", seed: seedOuting },
+  walk:     { label: "散步", seed: seedWalk },
+  shopping: { label: "逛街", seed: seedShopping },
+  office:   { label: "办公", seed: seedOffice },
+};
 
+let activeScene = "travel";
+let scenes = {};
 let items = [];
 
-/* 云端默认版本：打开页面时拉取最新默认，本地工作副本较新则保留本地 */
+/* 云端默认版本：打开页面时拉取最新默认（旅行场景基线），本地较新则保留本地 */
 async function fetchCloudDefault() {
   try {
     const res = await fetch(DEFAULT_URL + "?v=" + Date.now(), { cache: "no-store" });
@@ -349,26 +435,42 @@ async function fetchCloudDefault() {
   } catch (e) { return null; }
 }
 async function initData() {
-  let local = null;
+  let v2 = null;
   try {
     const raw = localStorage.getItem(KEY);
-    if (raw) local = JSON.parse(raw);
+    if (raw) v2 = JSON.parse(raw);
   } catch (e) { /* 忽略损坏的存档 */ }
+  if (!v2 || typeof v2 !== "object" || !v2.scenes) {
+    let legacy = null;
+    try {
+      const raw = localStorage.getItem(LEGACY_KEY);
+      if (raw) legacy = JSON.parse(raw);
+    } catch (e) { /* 忽略 */ }
+    v2 = { scenes: {}, active: "travel" };
+    v2.scenes.travel = (legacy && Array.isArray(legacy.items))
+      ? { items: legacy.items, savedAt: legacy.savedAt || null }
+      : { items: seedTravel(), savedAt: null };
+  }
+  for (const id of Object.keys(SCENES)) {
+    if (!v2.scenes[id] || !Array.isArray(v2.scenes[id].items)) {
+      v2.scenes[id] = { items: SCENES[id].seed(), savedAt: null };
+    }
+  }
+  if (!SCENES[v2.active]) v2.active = "travel";
+  activeScene = v2.active;
+  scenes = v2.scenes;
+
   const cloud = await fetchCloudDefault();
   if (cloud) {
+    const t = scenes.travel;
     const cloudTime = Date.parse(cloud.updatedAt) || 0;
-    const localTime = (local && local.savedAt) ? Date.parse(local.savedAt) : 0;
-    if (local && local.items && localTime >= cloudTime) {
-      items = local.items;             /* 本地工作副本更新或与云端一致 → 保留本地 */
-    } else {
-      items = cloud.items;             /* 云端默认更新 → 采用最新默认 */
-      localStorage.setItem(KEY, JSON.stringify({ items: clone(items), savedAt: new Date().toISOString() }));
+    const localTime = (t && t.savedAt) ? Date.parse(t.savedAt) : 0;
+    if (localTime < cloudTime) {
+      scenes.travel = { items: clone(cloud.items), savedAt: new Date().toISOString() };
     }
-  } else if (local && local.items) {
-    items = local.items;
-  } else {
-    items = seedData();
   }
+  items = scenes[activeScene].items;
+  try { localStorage.setItem(KEY, JSON.stringify({ scenes, active: activeScene })); } catch (e) {}
 }
 
 /* ================= 工具函数 ================= */
@@ -414,18 +516,49 @@ function undo() {
   const prev = undoStack.pop();
   if (!prev) { toast("没有可撤销的操作"); return; }
   redoStack.push(clone(items));
-  items = prev; render(); updateBtnState(); toast("已撤销");
+  items = prev; scenes[activeScene] = { items: clone(items), savedAt: new Date().toISOString() };
+  render(); updateBtnState(); toast("已撤销");
 }
 function redo() {
   const next = redoStack.pop();
   if (!next) { toast("没有可重做的操作"); return; }
   undoStack.push(clone(items));
-  items = next; render(); updateBtnState(); toast("已重做");
+  items = next; scenes[activeScene] = { items: clone(items), savedAt: new Date().toISOString() };
+  render(); updateBtnState(); toast("已重做");
 }
 function updateBtnState() {
   undoBtn.disabled = undoStack.length === 0;
   redoBtn.disabled = redoStack.length === 0;
 }
+
+/* ================= 场景菜单 ================= */
+const menubar = document.getElementById("menubar");
+function buildMenu() {
+  menubar.innerHTML = "";
+  Object.entries(SCENES).forEach(([id, s]) => {
+    const b = el("button", "scene" + (id === activeScene ? " on" : ""));
+    b.dataset.scene = id;
+    b.textContent = s.label;
+    menubar.appendChild(b);
+  });
+}
+function switchScene(id) {
+  if (!SCENES[id] || id === activeScene) return;
+  saveNow();
+  activeScene = id;
+  if (!scenes[id] || !scenes[id].items) scenes[id] = { items: SCENES[id].seed(), savedAt: null };
+  items = scenes[id].items;
+  undoStack.length = 0;
+  redoStack.length = 0;
+  buildMenu();
+  render();
+  updateBtnState();
+  toast("已切换到「" + SCENES[id].label + "」");
+}
+menubar.addEventListener("click", e => {
+  const b = e.target.closest(".scene");
+  if (b) switchScene(b.dataset.scene);
+});
 
 /* ================= 渲染 ================= */
 const tree = document.getElementById("tree");
@@ -437,7 +570,9 @@ const SVG_CHECK = '<svg width="10" height="10" viewBox="0 0 12 12"><path d="M2.5
 /* 母层级 emoji：已知关键词优先，未知按层级色板兜底；文本已以 emoji 开头则不重复 */
 const EMOJI_RULES = [
   ["贴身", "🧦"], ["洗漱", "🧴"], ["化妆", "💄"], ["电脑", "💻"], ["电子", "🔌"],
-  ["药", "💊"], ["护理", "🩹"], ["衣物", "👕"], ["杂物", "🧺"], ["飞机", "✈️"],
+  ["药", "💊"], ["护理小包", "🧻"], ["护理", "🩹"], ["衣物", "👕"], ["杂物", "🧺"],
+  ["飞机", "✈️"], ["出门必备", "🔑"], ["出门plus", "➕"], ["户外用品", "🏕️"],
+  ["防晒用品", "🧢"], ["办公小包", "✏️"],
 ];
 const LEVEL_EMOJI = [
   ["🧳", "🎒", "📦", "🧰", "📁", "🗂️"],
@@ -464,6 +599,7 @@ function renderNode(n, depth, idx) {
   const row = el("div", "row");
   row.dataset.id = n.id;
   row.dataset.type = n.type;
+  row.draggable = true;
 
   if (n.type === "toggle") {
     node.classList.add("card");
@@ -504,11 +640,8 @@ function renderNode(n, depth, idx) {
 
   const hr = el("div", "hover-right");
   const mk = (cls, t, html) => { const b = el("button", "act " + cls); b.title = t; b.innerHTML = html; return b; };
-  hr.appendChild(mk("up", "上移", "↑"));
-  hr.appendChild(mk("down", "下移", "↓"));
-  hr.appendChild(mk("outdent", "反缩进（Shift+Tab）", "←"));
-  hr.appendChild(mk("indent", "缩进为子项（Tab）", "→"));
-  hr.appendChild(mk("type", "转折叠组 / 转条目", "⇄"));
+  hr.appendChild(mk("outdent", "退一级（Shift+Tab）", "←"));
+  hr.appendChild(mk("indent", "进一级（Tab）", "→"));
   hr.appendChild(mk("del", "删除", "×"));
   row.appendChild(hr);
 
@@ -551,14 +684,15 @@ function updateProgress() {
 
 /* ================= 持久化 ================= */
 let saveTimer = null;
+function saveNow() {
+  clearTimeout(saveTimer);
+  scenes[activeScene] = { items: clone(items), savedAt: new Date().toISOString() };
+  try { localStorage.setItem(KEY, JSON.stringify({ scenes, active: activeScene })); } catch (e) {}
+  document.getElementById("saveHint").textContent = "已自动保存";
+}
 function save() {
   clearTimeout(saveTimer);
-  saveTimer = setTimeout(() => {
-    try {
-      localStorage.setItem(KEY, JSON.stringify({ items, savedAt: new Date().toISOString() }));
-      document.getElementById("saveHint").textContent = "已自动保存";
-    } catch (e) { /* 存储满等异常忽略 */ }
-  }, 250);
+  saveTimer = setTimeout(saveNow, 250);
 }
 
 /* ================= 操作 ================= */
@@ -628,60 +762,60 @@ function outdent(id) {
   render();
   focusText(id);
 }
-function move(id, dir) {
-  const loc = locate(items, id);
-  if (!loc) return;
-  const j = loc.idx + dir;
-  if (j < 0 || j >= loc.arr.length) return;
-  snapshot();
-  const arr = loc.arr;
-  const tmp = arr[loc.idx];
-  arr[loc.idx] = arr[j];
-  arr[j] = tmp;
-  render();
-  focusText(id);
+
+/* ================= 拖拽调序 ================= */
+let dragId = null;
+function clearDropIndicators() {
+  tree.querySelectorAll(".row.drop-before,.row.drop-after,.row.drop-child").forEach(r => {
+    r.classList.remove("drop-before", "drop-after", "drop-child");
+  });
 }
-function toggleType(id) {
-  const loc = locate(items, id);
+tree.addEventListener("dragstart", e => {
+  const row = e.target.closest(".row");
+  if (!row) return;
+  dragId = row.dataset.id;
+  e.dataTransfer.effectAllowed = "move";
+  try { e.dataTransfer.setData("text/plain", dragId); } catch (err) {}
+  row.classList.add("dragging");
+});
+tree.addEventListener("dragend", () => {
+  dragId = null;
+  tree.querySelectorAll(".row.dragging").forEach(r => r.classList.remove("dragging"));
+  clearDropIndicators();
+});
+tree.addEventListener("dragover", e => {
+  const row = e.target.closest(".row");
+  if (!row || row.dataset.id === dragId) return;
+  e.preventDefault();
+  clearDropIndicators();
+  const rect = row.getBoundingClientRect();
+  const before = (e.clientY - rect.top) < rect.height / 2;
+  const asChild = row.dataset.type === "toggle" && (e.clientX - rect.left) < rect.width * 0.25;
+  row.classList.add(before ? "drop-before" : "drop-after");
+  if (asChild) row.classList.add("drop-child");
+});
+tree.addEventListener("drop", e => {
+  e.preventDefault();
+  const row = e.target.closest(".row");
+  if (!row || !dragId || row.dataset.id === dragId) return;
+  const loc = locate(items, dragId);
   if (!loc) return;
+  const rect = row.getBoundingClientRect();
+  const before = (e.clientY - rect.top) < rect.height / 2;
+  const asChild = row.dataset.type === "toggle" && (e.clientX - rect.left) < rect.width * 0.25;
   snapshot();
-  const n = loc.arr[loc.idx];
-  if (n.type === "toggle") {
-    n.type = "check";
-    delete n.expanded;
+  const node = loc.arr.splice(loc.idx, 1)[0];
+  const tloc = locate(items, row.dataset.id);
+  if (asChild) {
+    tloc.arr[tloc.idx].children.push(node);
   } else {
-    n.type = "toggle";
-    n.expanded = true;
+    tloc.arr.splice(tloc.idx + (before ? 0 : 1), 0, node);
   }
+  clearDropIndicators();
   render();
-}
-function toggleCheck(id) {
-  const loc = locate(items, id);
-  if (!loc) return;
-  snapshot();
-  const n = loc.arr[loc.idx];
-  n.checked = !n.checked;
-  updateProgress();
-  save();
-  const row = tree.querySelector('.row[data-id="' + id + '"]');
-  const node = row.closest(".node");
-  node.classList.toggle("done", !!n.checked);
-  const cb = row.querySelector(".cb");
-  cb.classList.toggle("on", !!n.checked);
-}
-function toggleExpand(id) {
-  const loc = locate(items, id);
-  if (!loc) return;
-  const n = loc.arr[loc.idx];
-  if (n.type !== "toggle") return;
-  snapshot();
-  n.expanded = !n.expanded;
-  const row = tree.querySelector('.row[data-id="' + id + '"]');
-  row.classList.toggle("collapsed", !n.expanded);
-  const kids = row.parentNode.querySelector(":scope > .children");
-  if (kids) kids.classList.toggle("open", !!n.expanded);
-  save();
-}
+  const moved = tree.querySelector('.row[data-id="' + node.id + '"]');
+  if (moved) moved.scrollIntoView({ block: "nearest" });
+});
 
 /* ================= 事件 ================= */
 document.addEventListener("click", e => {
@@ -692,11 +826,8 @@ document.addEventListener("click", e => {
   const act = e.target.closest(".act");
   if (act) {
     const id = act.closest(".row").dataset.id;
-    if (act.classList.contains("up")) move(id, -1);
-    else if (act.classList.contains("down")) move(id, 1);
-    else if (act.classList.contains("outdent")) outdent(id);
+    if (act.classList.contains("outdent")) outdent(id);
     else if (act.classList.contains("indent")) indent(id);
-    else if (act.classList.contains("type")) toggleType(id);
     else if (act.classList.contains("del")) delNode(id);
     return;
   }
@@ -770,9 +901,9 @@ redoBtn.addEventListener("click", redo);
 document.getElementById("btnExpandAll").addEventListener("click", () => { snapshot(); setExpandedAll(items, true); render(); });
 document.getElementById("btnCollapseAll").addEventListener("click", () => { snapshot(); setExpandedAll(items, false); render(); });
 
-/* 更新默认清单：把当前内容生成为云端更新文件，发给助手即可同步部署 */
+/* 更新默认清单：把当前场景内容生成为云端更新文件，发给助手即可同步部署 */
 document.getElementById("btnUpdateDefault").addEventListener("click", () => {
-  const payload = { items: clone(items), updatedAt: new Date().toISOString() };
+  const payload = { items: clone(items), scene: activeScene, updatedAt: new Date().toISOString() };
   const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
   const a = document.createElement("a");
   a.href = URL.createObjectURL(blob);
@@ -784,38 +915,45 @@ document.getElementById("btnUpdateDefault").addEventListener("click", () => {
   toast("已生成 luggage-default.json，发给我即可同步到云端");
 });
 
-/* 恢复默认清单：两次点击确认，防止误触；优先恢复云端最新默认 */
+/* 恢复默认清单：两次点击确认，防止误触；旅行场景优先恢复云端最新默认 */
 const resetBtn = document.getElementById("btnReset");
 let resetArmed = false, resetTimer = null;
 resetBtn.addEventListener("click", async () => {
   if (!resetArmed) {
     resetArmed = true;
-    resetBtn.textContent = "确认恢复？";
+    resetBtn.textContent = "确认？";
     resetBtn.classList.add("danger");
     clearTimeout(resetTimer);
     resetTimer = setTimeout(disarmReset, 3000);
     return;
   }
   disarmReset();
-  const cloud = await fetchCloudDefault();
+  let seed;
+  if (activeScene === "travel") {
+    const cloud = await fetchCloudDefault();
+    seed = cloud ? clone(cloud.items) : seedTravel();
+  } else {
+    seed = SCENES[activeScene].seed();
+  }
   snapshot();
-  items = cloud ? clone(cloud.items) : seedData();
+  items = seed;
+  scenes[activeScene] = { items: clone(items), savedAt: new Date().toISOString() };
   render();
-  toast(cloud ? "已恢复云端默认清单" : "已恢复内置默认清单");
+  toast("已恢复默认清单");
 });
 function disarmReset() {
   resetArmed = false;
   clearTimeout(resetTimer);
-  resetBtn.textContent = "恢复默认清单";
+  resetBtn.textContent = "恢复";
   resetBtn.classList.remove("danger");
 }
 
 document.getElementById("btnExport").addEventListener("click", () => {
-  const data = JSON.stringify({ items, exportedAt: new Date().toISOString() }, null, 2);
+  const data = JSON.stringify({ items, scene: activeScene, exportedAt: new Date().toISOString() }, null, 2);
   const blob = new Blob([data], { type: "application/json" });
   const a = document.createElement("a");
   a.href = URL.createObjectURL(blob);
-  a.download = "行李清单_" + new Date().toISOString().slice(0, 10) + ".json";
+  a.download = "行李清单_" + SCENES[activeScene].label + "_" + new Date().toISOString().slice(0, 10) + ".json";
   document.body.appendChild(a);
   a.click();
   a.remove();
@@ -833,6 +971,7 @@ document.getElementById("fileInput").addEventListener("change", e => {
       if (!parsed || !Array.isArray(parsed.items)) throw new Error("格式不符");
       snapshot();
       items = parsed.items;
+      scenes[activeScene] = { items: clone(items), savedAt: new Date().toISOString() };
       render();
       toast("已导入");
     } catch (err) {
@@ -855,6 +994,7 @@ function toast(msg) {
 
 (async function init() {
   await initData();
+  buildMenu();
   render();
   updateBtnState();
 })();
