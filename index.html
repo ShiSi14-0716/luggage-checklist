@@ -762,6 +762,24 @@ function outdent(id) {
   render();
   focusText(id);
 }
+function toggleExpand(id) {
+  const loc = locate(items, id);
+  if (!loc) return;
+  const n = loc.arr[loc.idx];
+  if (n.type !== "toggle") return;
+  snapshot();
+  n.expanded = !n.expanded;
+  render();
+}
+function toggleCheck(id) {
+  const loc = locate(items, id);
+  if (!loc) return;
+  const n = loc.arr[loc.idx];
+  if (n.type !== "check") return;
+  snapshot();
+  n.checked = !n.checked;
+  render();
+}
 
 /* ================= 拖拽调序 ================= */
 let dragId = null;
