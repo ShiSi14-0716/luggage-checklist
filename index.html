@@ -257,9 +257,10 @@
     <button class="tbtn icon" id="btnRedo" title="重做（Ctrl+Y）"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 14 5-5-5-5"/><path d="M20 9H10a6 6 0 0 0 0 12h4"/></svg></button>
     <button class="tbtn" id="btnExpandAll" title="全部展开">展开</button>
     <button class="tbtn" id="btnCollapseAll" title="全部收起">收起</button>
+    <button class="tbtn icon" id="btnUncheck" title="一键取消勾选"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="m8 8 8 8M16 8l-8 8"/></svg></button>
     <button class="tbtn icon" id="btnExport" title="导出"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg></button>
     <button class="tbtn icon" id="btnImport" title="导入"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15V3"/><path d="m7 8 5-5 5 5"/><path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg></button>
-    <button class="tbtn" id="btnUpdateDefault" title="立即把当前内容同步到云端">更新</button>
+    <button class="tbtn" id="btnUpdateDefault" title="手动上传当前内容到云端">更新</button>
     <button class="tbtn" id="btnReset" title="恢复当前场景默认清单">恢复</button>
     <input type="file" id="fileInput" accept=".json,application/json" hidden>
   </div>
@@ -274,7 +275,7 @@
   <div id="tree"></div>
   <div class="hint">
     <div>点击文字即可编辑；<kbd>Enter</kbd> 在下方新建条目；<kbd>Tab</kbd> 缩进为子项、<kbd>Shift+Tab</kbd> 反缩进；空条目按 <kbd>Backspace</kbd> 删除；<kbd>Ctrl+Z</kbd> 撤销、<kbd>Ctrl+Y</kbd> 重做。</div>
-    <div>按住条目左侧的六个点上下拖拽可调整顺序；悬停条目：← 退一级、→ 进一级、× 删除。所有修改自动保存在本机，并即时同步到云端。</div>
+    <div>按住条目左侧的六个点上下拖拽可调整顺序；悬停条目：← 退一级、→ 进一级、× 删除。所有修改自动保存在本机；点「更新」才会上传云端。</div>
   </div>
 </div>
 
@@ -483,6 +484,18 @@ function applyCloud(cloud) {
     cloudState = cloud;
   }
   return changed;
+}
+/* 是否有比云端更新的本地修改（决定是否提示「待上传」） */
+function hasLocalEdits(cloud) {
+  if (!cloud || !cloud.scenes) return false;
+  for (const id of Object.keys(SCENES)) {
+    const l = scenes[id];
+    const c = cloud.scenes[id];
+    const lT = (l && l.savedAt) ? Date.parse(l.savedAt) : 0;
+    const cT = (c && (c.savedAt || c.updatedAt)) ? Date.parse(c.savedAt || c.updatedAt) : 0;
+    if (lT > cT) return true;
+  }
+  return false;
 }
 
 /* ================= 工具函数 ================= */
@@ -701,8 +714,7 @@ function saveNow() {
   scenes[activeScene] = { items: clone(items), savedAt: new Date().toISOString() };
   try { localStorage.setItem(KEY, JSON.stringify({ scenes, active: activeScene })); } catch (e) {}
   const h = document.getElementById("saveHint");
-  if (h) { h.textContent = "同步中…"; h.style.color = ""; }
-  scheduleCloudSync();
+  if (h) { h.textContent = "已保存·待上传"; h.style.color = "#e8b84b"; }
 }
 function save() {
   clearTimeout(saveTimer);
@@ -710,7 +722,6 @@ function save() {
 }
 
 let cloudState = null;      // 最近一次成功拉取 / 写入的云端状态
-let syncTimer = null;
 let syncChain = Promise.resolve();
 function setSyncStatus(ok) {
   const h = document.getElementById("saveHint");
@@ -771,10 +782,6 @@ async function doPush() {
 function pushCloudState() {
   syncChain = syncChain.then(doPush);
   return syncChain;
-}
-function scheduleCloudSync() {
-  clearTimeout(syncTimer);
-  syncTimer = setTimeout(pushCloudState, 800);
 }
 
 /* ================= 操作 ================= */
@@ -998,12 +1005,34 @@ undoBtn.addEventListener("click", undo);
 redoBtn.addEventListener("click", redo);
 document.getElementById("btnExpandAll").addEventListener("click", () => { snapshot(); setExpandedAll(items, true); render(); });
 document.getElementById("btnCollapseAll").addEventListener("click", () => { snapshot(); setExpandedAll(items, false); render(); });
+/* 一键取消勾选（仅当前场景） */
+document.getElementById("btnUncheck").addEventListener("click", () => {
+  let any = false;
+  (function walk(list) {
+    for (const n of list) {
+      if (n.type === "check" && n.checked) any = true;
+      if (n.children && n.children.length) walk(n.children);
+    }
+  })(items);
+  if (!any) { toast("没有已勾选的条目"); return; }
+  snapshot();
+  (function walk(list) {
+    for (const n of list) {
+      if (n.type === "check") n.checked = false;
+      if (n.children && n.children.length) walk(n.children);
+    }
+  })(items);
+  render();
+  toast("已取消全部勾选");
+});
 
-/* 更新：立即把当前内容同步到云端 */
+/* 更新：手动上传当前内容到云端（只有点这个按钮才会上传） */
 document.getElementById("btnUpdateDefault").addEventListener("click", async () => {
   saveNow();
+  const h = document.getElementById("saveHint");
+  if (h) { h.textContent = "上传中…"; h.style.color = ""; }
   const ok = await pushCloudState();
-  toast(ok ? "已同步到云端" : "云端同步失败，请检查网络");
+  toast(ok ? "已上传到云端" : "上传失败，请检查网络");
 });
 
 /* 恢复默认清单：两次点击确认，防止误触；有云端版本则恢复云端，否则恢复内置默认 */
@@ -1094,6 +1123,14 @@ function toast(msg) {
     render();
     updateBtnState();
     toast("已同步云端最新内容");
+  }
+  if (cloud && cloud.scenes) {
+    const h = document.getElementById("saveHint");
+    if (h) {
+      const dirty = hasLocalEdits(cloud);
+      h.textContent = dirty ? "已保存·待上传" : "已同步";
+      h.style.color = dirty ? "#e8b84b" : "";
+    }
   }
 })();
 </script>
