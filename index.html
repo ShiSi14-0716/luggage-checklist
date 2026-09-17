@@ -40,9 +40,13 @@
     backdrop-filter:blur(8px);
     border-bottom:1px solid var(--border);
   }
+  .menu-row{
+    display:flex;align-items:center;gap:8px;
+  }
   .menubar{
     display:flex;align-items:center;gap:6px;
     overflow-x:auto;scrollbar-width:none;
+    flex:1 1 auto;min-width:0;
   }
   .menubar::-webkit-scrollbar{display:none}
   .scene{
@@ -54,6 +58,15 @@
   }
   .scene:hover{color:var(--text)}
   .scene.on{color:#fff;background:rgba(35,131,226,.18);border-color:rgba(35,131,226,.55)}
+  .add-scene{
+    flex:0 0 auto;
+    font-size:12.5px;color:var(--accent);
+    padding:4px 12px;border-radius:999px;
+    border:1px dashed rgba(35,131,226,.55);background:rgba(35,131,226,.08);
+    white-space:nowrap;
+    transition:background .15s,color .15s;
+  }
+  .add-scene:hover{background:rgba(35,131,226,.18);color:#fff}
   .top-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
   .save-hint{font-size:12px;color:var(--faint);margin-right:4px;white-space:nowrap}
   .tbtn{
@@ -250,7 +263,10 @@
 <body>
 
 <div class="topbar">
-  <div class="menubar" id="menubar"></div>
+  <div class="menu-row">
+    <div class="menubar" id="menubar"></div>
+    <button class="add-scene" id="btnAddScene" title="添加新清单">＋ 添加新清单</button>
+  </div>
   <div class="top-actions">
     <span class="save-hint" id="saveHint">已自动保存</span>
     <button class="tbtn icon" id="btnUndo" title="撤销（Ctrl+Z）"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 14 4 9l5-5"/><path d="M4 9h10a6 6 0 0 1 0 12h-4"/></svg></button>
@@ -258,11 +274,8 @@
     <button class="tbtn" id="btnExpandAll" title="全部展开">展开</button>
     <button class="tbtn" id="btnCollapseAll" title="全部收起">收起</button>
     <button class="tbtn icon" id="btnUncheck" title="一键取消勾选"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="m8 8 8 8M16 8l-8 8"/></svg></button>
-    <button class="tbtn icon" id="btnExport" title="导出"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg></button>
-    <button class="tbtn icon" id="btnImport" title="导入"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15V3"/><path d="m7 8 5-5 5 5"/><path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg></button>
     <button class="tbtn" id="btnUpdateDefault" title="手动上传当前内容到云端">更新</button>
     <button class="tbtn" id="btnReset" title="恢复当前场景默认清单">恢复</button>
-    <input type="file" id="fileInput" accept=".json,application/json" hidden>
   </div>
 </div>
 
@@ -414,7 +427,9 @@ function seedOffice() {
     ]),
   ];
 }
-const SCENES = {
+/* 自定义清单（“添加新清单”创建，初始为空） */
+function seedCustom() { return []; }
+let SCENES = {
   travel:   { label: "旅行", seed: seedTravel },
   outing:   { label: "郊游", seed: seedOuting },
   walk:     { label: "散步", seed: seedWalk },
@@ -458,6 +473,12 @@ function initLocal() {
       v2.scenes[id] = { items: SCENES[id].seed(), savedAt: null };
     }
   }
+  /* 恢复本地存档中的自定义清单 */
+  for (const id of Object.keys(v2.scenes)) {
+    if (!SCENES[id] && v2.scenes[id] && Array.isArray(v2.scenes[id].items)) {
+      SCENES[id] = { label: v2.scenes[id].label || "清单", seed: seedCustom };
+    }
+  }
   if (!SCENES[v2.active]) v2.active = "travel";
   activeScene = v2.active;
   scenes = v2.scenes;
@@ -469,11 +490,15 @@ function applyCloud(cloud) {
   if (cloud && cloud.scenes && typeof cloud.scenes === "object") {
     for (const [sid, s] of Object.entries(cloud.scenes)) {
       if (!s || !Array.isArray(s.items)) continue;
+      /* 云端出现本地未知的自定义清单时也注册进来 */
+      if (!SCENES[sid]) {
+        SCENES[sid] = { label: s.label || "清单", seed: seedCustom };
+      }
       const local = scenes[sid];
       const cTime = Date.parse(s.savedAt || s.updatedAt) || 0;
       const lTime = (local && local.savedAt) ? Date.parse(local.savedAt) : 0;
       if (cTime > lTime) {
-        scenes[sid] = { items: clone(s.items), savedAt: s.savedAt || s.updatedAt || new Date().toISOString() };
+        scenes[sid] = { items: clone(s.items), savedAt: s.savedAt || s.updatedAt || new Date().toISOString(), label: s.label };
         changed = true;
       }
     }
@@ -583,6 +608,25 @@ function switchScene(id) {
 menubar.addEventListener("click", e => {
   const b = e.target.closest(".scene");
   if (b) switchScene(b.dataset.scene);
+});
+
+/* ================= 添加新清单 ================= */
+let sceneSeq = 1;
+document.getElementById("btnAddScene").addEventListener("click", () => {
+  const name = window.prompt("新清单名称：");
+  if (name === null) return; /* 用户取消 */
+  const label = (name || "").trim() || ("新清单 " + sceneSeq++);
+  const id = "s" + Date.now().toString(36) + Math.floor(Math.random() * 46656).toString(36);
+  SCENES[id] = { label, seed: seedCustom };
+  scenes[id] = { items: [], savedAt: new Date().toISOString(), label };
+  activeScene = id;
+  items = scenes[id].items;
+  undoStack.length = 0;
+  redoStack.length = 0;
+  buildMenu();
+  render();
+  updateBtnState();
+  toast("已创建「" + label + "」");
 });
 
 /* ================= 渲染 ================= */
@@ -711,7 +755,7 @@ function updateProgress() {
 let saveTimer = null;
 function saveNow() {
   clearTimeout(saveTimer);
-  scenes[activeScene] = { items: clone(items), savedAt: new Date().toISOString() };
+  scenes[activeScene] = { items: clone(items), savedAt: new Date().toISOString(), label: SCENES[activeScene].label };
   try { localStorage.setItem(KEY, JSON.stringify({ scenes, active: activeScene })); } catch (e) {}
   const h = document.getElementById("saveHint");
   if (h) { h.textContent = "已保存·待上传"; h.style.color = "#e8b84b"; }
@@ -739,9 +783,9 @@ function mergeForPush(cloud) {
     const lT = (local.savedAt) ? Date.parse(local.savedAt) : 0;
     const cT = (cloudS && (cloudS.savedAt || cloudS.updatedAt)) ? Date.parse(cloudS.savedAt || cloudS.updatedAt) : 0;
     if (cloudS && Array.isArray(cloudS.items) && cT > lT) {
-      out.scenes[id] = { items: clone(cloudS.items), savedAt: cloudS.savedAt || cloudS.updatedAt || now };
+      out.scenes[id] = { items: clone(cloudS.items), savedAt: cloudS.savedAt || cloudS.updatedAt || now, label: cloudS.label || local.label };
     } else {
-      out.scenes[id] = { items: clone(local.items), savedAt: local.savedAt || now };
+      out.scenes[id] = { items: clone(local.items), savedAt: local.savedAt || now, label: local.label };
     }
   }
   return out;
@@ -1054,7 +1098,7 @@ resetBtn.addEventListener("click", async () => {
   else { seed = SCENES[activeScene].seed(); }
   snapshot();
   items = seed;
-  scenes[activeScene] = { items: clone(items), savedAt: new Date().toISOString() };
+  scenes[activeScene] = { items: clone(items), savedAt: new Date().toISOString(), label: SCENES[activeScene].label };
   render();
   toast(fromCloud ? "已恢复云端版本" : "已恢复内置默认");
 });
@@ -1064,40 +1108,6 @@ function disarmReset() {
   resetBtn.textContent = "恢复";
   resetBtn.classList.remove("danger");
 }
-
-document.getElementById("btnExport").addEventListener("click", () => {
-  const data = JSON.stringify({ items, scene: activeScene, exportedAt: new Date().toISOString() }, null, 2);
-  const blob = new Blob([data], { type: "application/json" });
-  const a = document.createElement("a");
-  a.href = URL.createObjectURL(blob);
-  a.download = "行李清单_" + SCENES[activeScene].label + "_" + new Date().toISOString().slice(0, 10) + ".json";
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
-  URL.revokeObjectURL(a.href);
-  toast("已导出");
-});
-document.getElementById("btnImport").addEventListener("click", () => document.getElementById("fileInput").click());
-document.getElementById("fileInput").addEventListener("change", e => {
-  const f = e.target.files[0];
-  if (!f) return;
-  const rd = new FileReader();
-  rd.onload = () => {
-    try {
-      const parsed = JSON.parse(rd.result);
-      if (!parsed || !Array.isArray(parsed.items)) throw new Error("格式不符");
-      snapshot();
-      items = parsed.items;
-      scenes[activeScene] = { items: clone(items), savedAt: new Date().toISOString() };
-      render();
-      toast("已导入");
-    } catch (err) {
-      toast("导入失败：文件格式不正确");
-    }
-    e.target.value = "";
-  };
-  rd.readAsText(f);
-});
 
 /* ================= Toast ================= */
 let toastTimer = null;
