@@ -259,7 +259,7 @@
     <button class="tbtn" id="btnCollapseAll" title="全部收起">收起</button>
     <button class="tbtn icon" id="btnExport" title="导出"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg></button>
     <button class="tbtn icon" id="btnImport" title="导入"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15V3"/><path d="m7 8 5-5 5 5"/><path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg></button>
-    <button class="tbtn" id="btnUpdateDefault" title="把当前场景内容生成云端默认更新文件（luggage-default.json），发给我即可同步部署">更新</button>
+    <button class="tbtn" id="btnUpdateDefault" title="立即把当前内容同步到云端">更新</button>
     <button class="tbtn" id="btnReset" title="恢复当前场景默认清单">恢复</button>
     <input type="file" id="fileInput" accept=".json,application/json" hidden>
   </div>
@@ -274,7 +274,7 @@
   <div id="tree"></div>
   <div class="hint">
     <div>点击文字即可编辑；<kbd>Enter</kbd> 在下方新建条目；<kbd>Tab</kbd> 缩进为子项、<kbd>Shift+Tab</kbd> 反缩进；空条目按 <kbd>Backspace</kbd> 删除；<kbd>Ctrl+Z</kbd> 撤销、<kbd>Ctrl+Y</kbd> 重做。</div>
-    <div>按住条目左侧的六个点上下拖拽可调整顺序；悬停条目：← 退一级、→ 进一级、× 删除。所有修改自动保存在本机浏览器。</div>
+    <div>按住条目左侧的六个点上下拖拽可调整顺序；悬停条目：← 退一级、→ 进一级、× 删除。所有修改自动保存在本机，并即时同步到云端。</div>
   </div>
 </div>
 
@@ -285,9 +285,8 @@
 /* ================= 数据模型 ================= */
 const KEY = "luggage_checklist_v2";
 const LEGACY_KEY = "luggage_checklist_v1";
-const REPO_OWNER = "ShiSi14-0716";
-const REPO_NAME = "luggage-checklist";
-const DEFAULT_URL = "https://raw.githubusercontent.com/" + REPO_OWNER + "/" + REPO_NAME + "/main/luggage-default.json";
+/* 云端同步数据块（extendsclass 匿名 JSON 存储，公开读写，ID 随机生成） */
+const CLOUD_BIN = "https://json.extendsclass.com/bin/98292ec5fcd2";
 let uidc = 0;
 const nid = () => "n" + (++uidc) + "_" + Math.random().toString(36).slice(2, 7);
 const clone = x => JSON.parse(JSON.stringify(x));
@@ -426,16 +425,17 @@ let activeScene = "travel";
 let scenes = {};
 let items = [];
 
-/* 云端默认版本：打开页面时拉取最新默认（旅行场景基线），本地较新则保留本地 */
-async function fetchCloudDefault() {
+/* 云端同步：拉取云端最新状态 */
+async function fetchCloudState() {
   try {
-    const res = await fetch(DEFAULT_URL + "?v=" + Date.now(), { cache: "no-store" });
+    const res = await fetch(CLOUD_BIN + "?v=" + Date.now(), { cache: "no-store" });
     if (!res.ok) return null;
-    const data = await res.json();
-    return (data && Array.isArray(data.items)) ? data : null;
+    const d = await res.json();
+    return (d && typeof d === "object") ? d : null;
   } catch (e) { return null; }
 }
-async function initData() {
+/* 本地加载（同步）：优先 v2 存档，其次旧版 v1，最后内置种子 */
+function initLocal() {
   let v2 = null;
   try {
     const raw = localStorage.getItem(KEY);
@@ -460,18 +460,29 @@ async function initData() {
   if (!SCENES[v2.active]) v2.active = "travel";
   activeScene = v2.active;
   scenes = v2.scenes;
-
-  const cloud = await fetchCloudDefault();
-  if (cloud) {
-    const t = scenes.travel;
-    const cloudTime = Date.parse(cloud.updatedAt) || 0;
-    const localTime = (t && t.savedAt) ? Date.parse(t.savedAt) : 0;
-    if (localTime < cloudTime) {
-      scenes.travel = { items: clone(cloud.items), savedAt: new Date().toISOString() };
-    }
-  }
   items = scenes[activeScene].items;
-  try { localStorage.setItem(KEY, JSON.stringify({ scenes, active: activeScene })); } catch (e) {}
+}
+/* 云端合并：每个场景取较新版本（本机未编辑过的种子场景不覆盖云端） */
+function applyCloud(cloud) {
+  let changed = false;
+  if (cloud && cloud.scenes && typeof cloud.scenes === "object") {
+    for (const [sid, s] of Object.entries(cloud.scenes)) {
+      if (!s || !Array.isArray(s.items)) continue;
+      const local = scenes[sid];
+      const cTime = Date.parse(s.savedAt || s.updatedAt) || 0;
+      const lTime = (local && local.savedAt) ? Date.parse(local.savedAt) : 0;
+      if (cTime > lTime) {
+        scenes[sid] = { items: clone(s.items), savedAt: s.savedAt || s.updatedAt || new Date().toISOString() };
+        changed = true;
+      }
+    }
+    if (SCENES[cloud.active] && cloud.active !== activeScene) {
+      activeScene = cloud.active;
+      changed = true;
+    }
+    cloudState = cloud;
+  }
+  return changed;
 }
 
 /* ================= 工具函数 ================= */
@@ -683,17 +694,87 @@ function updateProgress() {
   document.getElementById("pfill").style.width = total ? (done / total * 100).toFixed(1) + "%" : "0%";
 }
 
-/* ================= 持久化 ================= */
+/* ================= 持久化 + 云端同步 ================= */
 let saveTimer = null;
 function saveNow() {
   clearTimeout(saveTimer);
   scenes[activeScene] = { items: clone(items), savedAt: new Date().toISOString() };
   try { localStorage.setItem(KEY, JSON.stringify({ scenes, active: activeScene })); } catch (e) {}
-  document.getElementById("saveHint").textContent = "已自动保存";
+  const h = document.getElementById("saveHint");
+  if (h) { h.textContent = "同步中…"; h.style.color = ""; }
+  scheduleCloudSync();
 }
 function save() {
   clearTimeout(saveTimer);
   saveTimer = setTimeout(saveNow, 250);
+}
+
+let cloudState = null;      // 最近一次成功拉取 / 写入的云端状态
+let syncTimer = null;
+let syncChain = Promise.resolve();
+function setSyncStatus(ok) {
+  const h = document.getElementById("saveHint");
+  if (!h) return;
+  h.textContent = ok ? "已同步" : "云端同步失败";
+  h.style.color = ok ? "" : "#ff7a7a";
+}
+/* 推送前合并：本机未编辑过的场景保留云端版本，避免覆盖其他设备的修改 */
+function mergeForPush(cloud) {
+  const now = new Date().toISOString();
+  const out = { scenes: {}, active: activeScene, updatedAt: now };
+  for (const id of Object.keys(SCENES)) {
+    const local = scenes[id] || { items: [] };
+    const cloudS = (cloud && cloud.scenes) ? cloud.scenes[id] : null;
+    const lT = (local.savedAt) ? Date.parse(local.savedAt) : 0;
+    const cT = (cloudS && (cloudS.savedAt || cloudS.updatedAt)) ? Date.parse(cloudS.savedAt || cloudS.updatedAt) : 0;
+    if (cloudS && Array.isArray(cloudS.items) && cT > lT) {
+      out.scenes[id] = { items: clone(cloudS.items), savedAt: cloudS.savedAt || cloudS.updatedAt || now };
+    } else {
+      out.scenes[id] = { items: clone(local.items), savedAt: local.savedAt || now };
+    }
+  }
+  return out;
+}
+async function doPush() {
+  let cloud = cloudState;
+  let fetched = false;
+  try {
+    const res = await fetch(CLOUD_BIN + "?v=" + Date.now(), { cache: "no-store" });
+    if (res.ok) {
+      const d = await res.json();
+      if (d && typeof d === "object") { cloud = d; fetched = true; }
+    }
+  } catch (e) { /* 拉取失败时用缓存状态 */ }
+  /* 从未成功拉取过云端就跳过写入，防止覆盖云端已有数据 */
+  if (!cloudState && !fetched) { setSyncStatus(false); return false; }
+  const payload = mergeForPush(cloud);
+  try {
+    if (JSON.stringify(payload).length > 90000) {
+      setSyncStatus(false);
+      toast("云端同步失败：内容超过 100KB 上限");
+      return false;
+    }
+    const res = await fetch(CLOUD_BIN, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    const ok = res.ok || res.status === 200;
+    if (ok) cloudState = payload;
+    setSyncStatus(ok);
+    return ok;
+  } catch (e) {
+    setSyncStatus(false);
+    return false;
+  }
+}
+function pushCloudState() {
+  syncChain = syncChain.then(doPush);
+  return syncChain;
+}
+function scheduleCloudSync() {
+  clearTimeout(syncTimer);
+  syncTimer = setTimeout(pushCloudState, 800);
 }
 
 /* ================= 操作 ================= */
@@ -918,21 +999,14 @@ redoBtn.addEventListener("click", redo);
 document.getElementById("btnExpandAll").addEventListener("click", () => { snapshot(); setExpandedAll(items, true); render(); });
 document.getElementById("btnCollapseAll").addEventListener("click", () => { snapshot(); setExpandedAll(items, false); render(); });
 
-/* 更新默认清单：把当前场景内容生成为云端更新文件，发给助手即可同步部署 */
-document.getElementById("btnUpdateDefault").addEventListener("click", () => {
-  const payload = { items: clone(items), scene: activeScene, updatedAt: new Date().toISOString() };
-  const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
-  const a = document.createElement("a");
-  a.href = URL.createObjectURL(blob);
-  a.download = "luggage-default.json";
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
-  URL.revokeObjectURL(a.href);
-  toast("已生成 luggage-default.json，发给我即可同步到云端");
+/* 更新：立即把当前内容同步到云端 */
+document.getElementById("btnUpdateDefault").addEventListener("click", async () => {
+  saveNow();
+  const ok = await pushCloudState();
+  toast(ok ? "已同步到云端" : "云端同步失败，请检查网络");
 });
 
-/* 恢复默认清单：两次点击确认，防止误触；旅行场景优先恢复云端最新默认 */
+/* 恢复默认清单：两次点击确认，防止误触；有云端版本则恢复云端，否则恢复内置默认 */
 const resetBtn = document.getElementById("btnReset");
 let resetArmed = false, resetTimer = null;
 resetBtn.addEventListener("click", async () => {
@@ -945,18 +1019,15 @@ resetBtn.addEventListener("click", async () => {
     return;
   }
   disarmReset();
-  let seed;
-  if (activeScene === "travel") {
-    const cloud = await fetchCloudDefault();
-    seed = cloud ? clone(cloud.items) : seedTravel();
-  } else {
-    seed = SCENES[activeScene].seed();
-  }
+  let seed, fromCloud = false;
+  const cloudS = (cloudState && cloudState.scenes) ? cloudState.scenes[activeScene] : null;
+  if (cloudS && Array.isArray(cloudS.items)) { seed = clone(cloudS.items); fromCloud = true; }
+  else { seed = SCENES[activeScene].seed(); }
   snapshot();
   items = seed;
   scenes[activeScene] = { items: clone(items), savedAt: new Date().toISOString() };
   render();
-  toast("已恢复默认清单");
+  toast(fromCloud ? "已恢复云端版本" : "已恢复内置默认");
 });
 function disarmReset() {
   resetArmed = false;
@@ -1010,10 +1081,20 @@ function toast(msg) {
 }
 
 (async function init() {
-  await initData();
+  initLocal();
   buildMenu();
   render();
   updateBtnState();
+  /* 后台拉取云端合并（不阻塞首屏渲染） */
+  const cloud = await fetchCloudState();
+  if (applyCloud(cloud)) {
+    try { localStorage.setItem(KEY, JSON.stringify({ scenes, active: activeScene })); } catch (e) {}
+    buildMenu();
+    items = scenes[activeScene].items;
+    render();
+    updateBtnState();
+    toast("已同步云端最新内容");
+  }
 })();
 </script>
 </body>
