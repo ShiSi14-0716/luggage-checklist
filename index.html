@@ -141,14 +141,15 @@
   .lv4 .txt{font-size:13.5px}
   .lemoji{margin-right:4px;flex:0 0 auto}
 
-  .add{
-    position:absolute;left:5px;top:50%;transform:translateY(-50%);
-    width:19px;height:19px;line-height:1;border-radius:4px;
-    color:var(--accent);opacity:0;transition:opacity .12s,background .12s;
+  .dh{
+    position:absolute;left:4px;top:50%;transform:translateY(-50%);
+    width:20px;height:22px;line-height:1;border-radius:4px;
+    color:var(--faint);opacity:0;transition:opacity .12s,color .12s,background .12s;
     display:flex;align-items:center;justify-content:center;
+    cursor:grab;
   }
-  .add:hover{background:rgba(255,255,255,.1)}
-  .row:hover .add{opacity:1}
+  .dh:hover{color:var(--muted);background:rgba(255,255,255,.1)}
+  .row:hover .dh{opacity:1}
 
   .chev{
     width:16px;height:16px;flex:0 0 auto;
@@ -234,7 +235,7 @@
 
   /* ===== 触屏 / 小屏适配 ===== */
   @media (pointer:coarse){
-    .add{opacity:.6}
+    .dh{opacity:.6}
     .hover-right{opacity:.6}
     .ghost{opacity:.55}
   }
@@ -273,7 +274,7 @@
   <div id="tree"></div>
   <div class="hint">
     <div>点击文字即可编辑；<kbd>Enter</kbd> 在下方新建条目；<kbd>Tab</kbd> 缩进为子项、<kbd>Shift+Tab</kbd> 反缩进；空条目按 <kbd>Backspace</kbd> 删除；<kbd>Ctrl+Z</kbd> 撤销、<kbd>Ctrl+Y</kbd> 重做。</div>
-    <div>上下拖拽条目可调整顺序；悬停条目：← 退一级、→ 进一级、× 删除。所有修改自动保存在本机浏览器。</div>
+    <div>按住条目左侧的六个点上下拖拽可调整顺序；悬停条目：← 退一级、→ 进一级、× 删除。所有修改自动保存在本机浏览器。</div>
   </div>
 </div>
 
@@ -609,9 +610,9 @@ function renderNode(n, depth, idx) {
   }
   node.classList.add("lv" + Math.min(depth + 1, 4));
 
-  const addB = el("button", "act add");
-  addB.title = "在此后添加条目";
-  addB.innerHTML = '<svg width="13" height="13" viewBox="0 0 12 12"><path d="M6 1.5 v9 M1.5 6 h9" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>';
+  const dh = el("button", "act dh");
+  dh.title = "拖拽调整顺序";
+  dh.innerHTML = '<svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><circle cx="9" cy="6" r="1.7"/><circle cx="15" cy="6" r="1.7"/><circle cx="9" cy="12" r="1.7"/><circle cx="15" cy="12" r="1.7"/><circle cx="9" cy="18" r="1.7"/><circle cx="15" cy="18" r="1.7"/></svg>';
 
   if (n.type === "toggle") {
     const ch = el("button", "chev");
@@ -645,7 +646,7 @@ function renderNode(n, depth, idx) {
   hr.appendChild(mk("del", "删除", "×"));
   row.appendChild(hr);
 
-  row.insertBefore(addB, row.firstChild);
+  row.insertBefore(dh, row.firstChild);
   node.appendChild(row);
 
   const kids = el("div", "children");
@@ -837,8 +838,6 @@ tree.addEventListener("drop", e => {
 
 /* ================= 事件 ================= */
 document.addEventListener("click", e => {
-  const addB = e.target.closest(".add");
-  if (addB) { addNodeAfter(addB.closest(".row").dataset.id); return; }
   const ghost = e.target.closest(".ghost");
   if (ghost) { addChild(ghost.dataset.pid); return; }
   const act = e.target.closest(".act");
